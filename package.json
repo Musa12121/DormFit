@@ -1,0 +1,40 @@
+{
+  "name": "dormfit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:client": "vite --host 127.0.0.1",
+    "dev:server": "node --watch server/index.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "npm run test:types && npm run test:frontend && npm run test:backend",
+    "test:types": "tsc --noEmit -p tsconfig.tests.json",
+    "test:frontend": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:backend": "node --experimental-strip-types --test tests/planner.test.ts tests/ai.test.mjs tests/backend/*.test.mjs",
+    "test:backend:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=server/*.mjs --test-coverage-include=src/domain/*.ts --test-coverage-exclude=server/config*.mjs --test-coverage-exclude=server/index.mjs --test tests/planner.test.ts tests/ai.test.mjs tests/backend/*.test.mjs",
+    "test:e2e": "node tests/browser.mjs && node tests/browser-ai.mjs && node tests/browser-wardrobe.mjs && node tests/browser-editor.mjs && node tests/browser-openings-review.mjs && node tests/browser-language.mjs && node tests/browser-catalog.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "jsdom": "^30.1.2",
+    "playwright": "^1.56.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.2.0",
+    "vitest": "^4.1.11"
+  }
+}
