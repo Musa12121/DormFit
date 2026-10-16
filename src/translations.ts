@@ -206,7 +206,6 @@ export const translations: Record<string, readonly [string, string]> = {
   'After choosing a layout, drag or resize any furniture item.': ['Выбрав планировку, перемещайте мебель и меняйте её размеры.', 'Bir plan seçtikten sonra eşyaları taşıyın veya ölçülerini değiştirin.'],
   'Small space, big possibilities.': ['Мало места — много возможностей.', 'Küçük alan, büyük olanaklar.'],
   'Help and keyboard shortcuts': ['Помощь и горячие клавиши', 'Yardım ve klavye kısayolları'],
-  'Your room. Your rules.': ['Ваша комната. Ваши правила.', 'Sizin odanız. Sizin kurallarınız.'],
   'Choose a DormFit layout file': ['Выберите файл планировки DormFit', 'Bir DormFit plan dosyası seçin'],
   'Dismiss notification': ['Закрыть уведомление', 'Bildirimi kapat'],
   'Name your layout': ['Назовите планировку', 'Planınıza ad verin'],

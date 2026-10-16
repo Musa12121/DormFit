@@ -1145,7 +1145,6 @@ export default function App() {
           </span>
           <button onClick={() => setDialog('help')}>
             <CircleHelp size={14} />{t("Help and keyboard shortcuts")}</button>
-          <span>{t("Your room. Your rules.")}</span>
         </footer>
       </main>
 
