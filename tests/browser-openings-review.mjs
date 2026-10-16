@@ -38,7 +38,7 @@ await page.route('**/api/layout-advice', async route => {
   assert.equal(body.review.requirements[1].relation, 'away');
   assert.deepEqual(body.review.unmetRequests, []);
   await route.fulfill({ headers: { 'X-DormFit-AI-Version': AI_PROTOCOL }, json: {
-    positions: [{ id: 'bed-1', x: 120, y: 100, rotated: false }, { id: 'plant-1', x: 375, y: 150, rotated: false }],
+    positions: [{ id: 'bed-1', x: 160, y: 100, rotated: false }, { id: 'plant-1', x: 375, y: 150, rotated: false }],
     requirements: body.review.requirements, unmetRequests: [],
     explanation: 'The plant is near Window 1 on the right wall. The bed is away from the left wall.', tips: [],
   } });

@@ -16,7 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "test:backend": "node --experimental-strip-types --test tests/planner.test.ts tests/ai.test.mjs tests/backend/*.test.mjs",
     "test:backend:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=server/*.mjs --test-coverage-include=src/domain/*.ts --test-coverage-exclude=server/config*.mjs --test-coverage-exclude=server/index.mjs --test tests/planner.test.ts tests/ai.test.mjs tests/backend/*.test.mjs",
-    "test:e2e": "node tests/browser.mjs && node tests/browser-ai.mjs && node tests/browser-wardrobe.mjs && node tests/browser-editor.mjs && node tests/browser-openings-review.mjs && node tests/browser-language.mjs && node tests/browser-catalog.mjs"
+    "test:e2e": "node tests/browser.mjs && node tests/browser-ai.mjs && node tests/browser-wardrobe.mjs && node tests/browser-editor.mjs && node tests/browser-openings-review.mjs && node tests/browser-language.mjs && node tests/browser-catalog.mjs && node tests/browser-access-rotation.mjs"
   },
   "dependencies": {
     "lucide-react": "*",

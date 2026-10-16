@@ -40,7 +40,10 @@ try {
   await page.getByRole('button', { name: '3D', exact: true }).click();
   for (const entry of newTypes) assert.equal(await page.locator(`.iso-svg [data-shape="iso-${entry.kind}"]`).count(), 1);
   assert.equal(await page.locator('.iso-svg [data-shape="iso-bunk-bed"] [data-bed-part="mattress"]').count(), 2);
-  await page.getByRole('button', { name: 'Select Office chair 1', exact: true }).click();
+  // Tall furniture may occlude the chair in a dense isometric scene. The
+  // keyboard selection must still reach it without clicking through a cupboard.
+  const officeChair = page.getByRole('button', { name: 'Select Office chair 1', exact: true });
+  await officeChair.focus(); await officeChair.press('Enter');
   assert.equal(await page.getByLabel('Furniture width', { exact: true }).inputValue(), '65');
   await page.screenshot({ path: 'test-results/catalog-3d.png', fullPage: true });
   console.log('PASS all new types appear in 3D and can be selected for editing');
