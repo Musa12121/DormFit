@@ -81,7 +81,9 @@ Only the confirmed conditions are required. Removing a condition stops the origi
 
 Requests AI cannot turn into conditions are shown separately. You can keep them as visible limitations or remove them. If interpretation fails, you can add conditions manually or go back and edit the note. A Gemini key is still required to generate an AI layout.
 
-After confirmation, Gemini suggests furniture positions. The app checks that all items are present, fit inside the room, avoid overlaps and every door's opening zone, and meet the confirmed conditions. Conflicting conditions or a crowded room may prevent a valid AI layout.
+After confirmation, Gemini suggests furniture positions and directions. The app checks that all items are present, fit inside the room, avoid overlaps, leave every door's swing and entrance landing clear, and meet the confirmed conditions. It also checks a connected **60 cm walking route** from the entrance to the other doors and to each solid item. Wardrobes, drawers, storage cabinets, fridges and washing machines need reachable standing space at their front. Rugs are walkable.
+
+For example, drawers immediately beyond the door arc can still block someone entering. The app now rejects that arrangement. It tries a local repair or asks Gemini to fix it; a plan that still fails these checks is not accepted as an AI layout. Conflicting conditions or a crowded room may prevent a valid layout.
 
 AI without a written note skips the review step. With a note, interpretation normally makes one model request; layout generation can make up to two more if a placement retry is needed. A recognised output-format rejection can cause one extra compatibility request per attempt. Other errors, including quota or key errors, do not trigger this retry.
 
@@ -119,7 +121,7 @@ Keep your key private. Do not put it in the `src` folder or share it in screensh
 | Resize furniture | Select it, then edit Furniture width or Furniture length in the left panel. Press Enter or click outside the field to apply |
 | Move a door or window | Drag it on the preview or main 2D plan. Arrow keys move a focused opening; R changes its wall |
 | Move furniture | Drag it, or select it and use the arrow keys |
-| Rotate furniture | Select it and press `R` |
+| Rotate furniture | Select it and press `R`, or click Rotate. Each click turns it 90°: 0° → 90° → 180° → 270° → 0°. The left panel shows its current angle |
 | Delete furniture | Select it and press `Delete` |
 | Zoom in or out | Use the `+` and `−` buttons |
 | Open fullscreen | Click the fullscreen button; press `Escape` to leave |
@@ -148,13 +150,15 @@ This checks TypeScript types and runs the frontend and backend tests. You do not
 
 | Test group | What it checks | Last separate run |
 | --- | --- | --- |
-| Frontend — Vitest | Forms, custom icons and room drawings, catalog search, opening controls, AI review, translated request-limit messages and deletion confirmation | 214 passed |
-| Backend — Node.js test runner | All 24 common items, older saved furniture, requests, geometry, confirmed preferences, format compatibility, AI request limits and startup without private settings | 221 passed |
-| Browser — Playwright | Chrome workflows, all furniture types, catalog search, dragging, AI notes and three page languages | 51 checks passed |
+| Frontend — Vitest | Forms, room drawings, four-way rotation and history, catalog search, opening controls, AI review, translated messages and deletion confirmation | 222 passed |
+| Backend — Node.js test runner | All 24 common items, older saved furniture, requests, geometry, entrance and walking access, four directions, confirmed preferences, format compatibility, AI limits and startup | 237 passed |
+| Browser — Playwright | Chrome workflows, all furniture types, dragging, AI notes, three page languages, rejected blocked entrances and four-way rotation | 55 checks passed |
 
 Request-limit tests use a fake clock and fake Gemini responses. They check the minute and daily caps, shared limits across both AI endpoints, wait times, midnight resets and retries. They do not use your API key or wait a real minute or day.
 
 Startup tests use temporary settings files. They check that missing settings allow the backend to run, valid settings are respected and broken settings cannot leak a key in error messages. They never open your private settings file.
+
+Access tests cover drawers beyond the door swing, disconnected parts of a room, narrow gaps, multiple doors, front access for cupboards, walkable rugs and repairing the reported 3 × 5 metre room. Rotation tests cover all four angles, old saved files, saved facing, keyboard controls and undo/redo.
 
 To run the frontend or backend tests separately:
 
@@ -225,6 +229,8 @@ The **frontend** is what you see and use in the browser. It uses React, TypeScri
 | `src/components` | Forms, buttons, room views and furniture drawings |
 | `src/translations.ts`, `src/i18n.ts` | Russian and Turkish text, the language choice and translated messages |
 | `src/domain/planner.ts` | Rules for creating layouts without AI |
+| `src/domain/access.ts` | Checks connected 60 cm walking routes and access to furniture fronts |
+| `src/domain/rotation.ts`, `src/domain/geometry.ts` | Four furniture directions, drawing coordinates and measured footprints |
 | `src/domain/ai.ts` | Checks for AI layouts |
 | `src/domain/openings.ts` | Opening positions, validation and door-clearance areas |
 | `src/components/OpeningEditor.tsx` | Door and window controls |
@@ -244,7 +250,9 @@ The **frontend** is what you see and use in the browser. It uses React, TypeScri
 
 Rooms are rectangular, with each side between **2 and 100 metres**. The old 10-metre cap was an input restriction. The higher cap keeps very large inputs manageable; large rooms use a wider search grid, with extra positions beside furniture and walls. Layout suggestions are not guaranteed to find every possible arrangement.
 
-Doors and windows can be placed on any of the four walls. You can add up to 12 openings in total. Openings must fit their wall without overlapping. Door widths are 60–140 cm; window widths start at 60 cm. The planner reserves a square clearance area inside each door. Door hinges and outward-opening doors are not configurable yet.
+Doors and windows can be placed on any of the four walls. You can add up to 12 openings in total. Openings must fit their wall without overlapping. Door widths are 60–140 cm; window widths start at 60 cm. The planner reserves a square swing area plus a 60 cm landing farther into the room. A dashed amber area shows the landing. Door hinges and outward-opening doors are not configurable yet.
+
+Walking access uses a simplified 60 × 60 cm footprint moving along the floor. It checks connected routes and standing space, not building regulations, wheelchair access, drawer extensions or real door mechanics. Manual edits can introduce a blocked route; the app shows a warning. Existing saved layouts remain readable, including their old two-position rotation flags.
 
 You can choose up to 30 furniture items. Furniture dimensions are 20–400 cm. Resizing keeps an item inside the room where possible; if it overlaps another item, the app shows a warning. Use Undo to restore the previous size.
 

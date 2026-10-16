@@ -40,9 +40,11 @@ SavedProject: id, updatedAt, Project. Limit: 10 per kind, 30 total, 20 saved sna
 
 ## Placement Algorithm
 
-Try both orientations with a 10 cm wall margin. Use a 10 cm search grid for small rooms and bounded samples with alignment anchors for large rooms. Reject bounds, door-zone and solid overlaps. Score positions by wall distance and each style's preference. Larger pieces normally go first; daylight gives desks first choice. Rugs go last and may underlay furniture. Retain unplaced pieces and report conflicts.
+Try four clockwise directions (0, 90, 180, 270 degrees) with a 10 cm wall margin. Use a 10 cm search grid for small rooms and bounded samples with alignment anchors for large rooms. Reject bounds, door-swing/landing and solid overlaps. Score positions by wall distance, facing and each style's preference, then check up to 128 preferred candidates for connected walking access. Larger pieces normally go first; daylight gives desks first choice. Rugs go last and may underlay furniture. Retain unplaced pieces and report conflicts.
 
-The search is heuristic. Optional height is informational. The catalog offers 24 common furniture types; older types are retained for saved-file compatibility.
+The search is heuristic. Optional height is informational. The catalog offers 24 common furniture types; older types are retained for saved-file compatibility. Furniture stores an optional full rotation alongside the compatible rotated boolean. Old files map false/true to 0/90 degrees. SVG and isometric drawings use shared coordinate transforms.
+
+Access checks reserve a 60 cm landing beyond each door swing and trace a 60 cm square through free floor space. The graph uses obstacle boundaries and furniture centres instead of a room-sized grid. All doorways must connect, every solid item needs a reachable side, and selected storage/appliance types need front access. The same checks validate AI output, local repairs and manual edits. This is a simplified planning check, not a building-code or wheelchair-access assessment.
 
 ## Editor Behaviour
 
@@ -54,7 +56,7 @@ Invalid dimensions block progress. Empty/excessive quantities disable generation
 
 ## External Services and Delivery
 
-Optional Gemini calls go through the loopback-only Node backend. The key stays in ignored backend config; Vite denies access to server files. Gemini generates coordinates for every item from the note. Shared checks reject bounds/door/collision issues and unmet declared near/away requirements (60/100 cm edge distances). One repair attempt includes specific validation feedback. Valid AI geometry is a separate fourth card; three algorithm alternatives are labelled as not applying notes. Unfulfilled requests remain visible. Missing keys, network failures and invalid responses preserve clearly labelled local plans. Fonts remain local. No source upload or deployment occurred.
+Optional Gemini calls go through the loopback-only Node backend. The key stays in ignored backend config; Vite denies access to server files. Gemini generates coordinates and facing for every item from the note. Shared checks reject bounds, door/landing, collision, walking-access and declared near/away failures (60/100 cm edge distances). One repair attempt includes specific validation feedback. Valid AI geometry is featured separately from the three algorithm alternatives, which are labelled as not applying notes. Unfulfilled requests remain visible. Missing keys, network failures and invalid responses preserve clearly labelled local plans. Fonts remain local. The source is published on GitHub; the application itself runs locally.
 
 `server/aiLimits.mjs` reserves an allowance before every outgoing Gemini call, including interpretation, generation and compatibility or placement retries. The shared backend limit is 10 calls per rolling 60 seconds and 100 per UTC calendar day. Blocked requests return HTTP 429, a safe translated message and a Retry-After header. Invalid inputs do not consume the allowance. The in-memory counters reset on restart; multiple deployed processes would need shared persistent storage.
 
