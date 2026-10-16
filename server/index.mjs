@@ -1,12 +1,10 @@
 import { createApp } from './app.mjs';
+import { loadGeminiConfig } from './loadConfig.mjs';
 
 // A config syntax error must not print a source line containing the private key.
 let geminiConfig;
 try {
-  ({ geminiConfig } = await import('./config.local.mjs'));
-  if (typeof geminiConfig?.apiKey !== 'string' || typeof geminiConfig?.model !== 'string') {
-    throw new Error('Invalid config shape');
-  }
+  geminiConfig = await loadGeminiConfig();
 } catch {
   console.error('Could not read backend settings. Check the syntax and setting names in config.local.mjs.');
   process.exit(1);

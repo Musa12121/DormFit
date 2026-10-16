@@ -6,19 +6,23 @@ For example: **a 4 × 5 metre room with 2 beds, 1 wardrobe and 1 desk.** Pick a 
 
 ## 1. Start the website
 
-You need **Node.js 22.18 or newer**. Node.js runs the app's server on your computer. It includes `npm`, which installs the packages the project needs.
+You need **Git** and **Node.js 22.18 or newer**. Node.js runs the app's server on your computer. It includes `npm`, which installs the packages the project needs.
 
 In VS Code, open **Terminal → New Terminal**. Run these commands one at a time:
 
 ```powershell
-cd C:\Users\user\Desktop\hackhaton\dormfit
+git clone https://github.com/Musa12121/DormFit.git
+cd DormFit
 npm.cmd ci
 npm.cmd run dev
 ```
 
-- `cd` opens the project folder. Skip it if your terminal is already there. Use your own folder path if you saved the project somewhere else.
+- `git clone` downloads the project. Skip the first two commands if you already have the project open in its folder.
+- `cd DormFit` opens the downloaded project folder.
 - `npm.cmd ci` installs the required packages. You do not need to run it every time you start the app.
 - `npm.cmd run dev` starts the website and its local server.
+
+**No API key or private settings file is needed to start.** You can create, edit and save regular layouts immediately. If `server/config.local.mjs` is missing, the backend uses the empty-key defaults in `server/config.example.mjs`. AI is optional; section 4 explains how to enable it.
 
 Open the **Local** address shown in the terminal. It is usually **http://127.0.0.1:5173**. If the terminal shows a different address, use that one.
 
@@ -103,7 +107,7 @@ An API key is a private code that lets the app use your Gemini account. You only
 2. Find `apiKey: ''`. Paste your key between the two quotes and save the file.
 3. Stop the app with **Ctrl+C**, then run `npm.cmd run dev` again.
 
-If the file is missing, copy `server/config.example.mjs` and name the copy `config.local.mjs`. Keep it in the `server` folder.
+If the file is missing, copy `server/config.example.mjs` and name the copy `config.local.mjs`. Keep it in the `server` folder. This step is only needed to enable AI; regular layouts work without it. An existing settings file with invalid syntax still produces a safe error so you can correct it.
 
 Keep your key private. Do not put it in the `src` folder or share it in screenshots or messages. The local key file is excluded from Git. Automated tests use fake responses and do not send real Gemini requests.
 
@@ -145,10 +149,12 @@ This checks TypeScript types and runs the frontend and backend tests. You do not
 | Test group | What it checks | Last separate run |
 | --- | --- | --- |
 | Frontend — Vitest | Forms, custom icons and room drawings, catalog search, opening controls, AI review, translated request-limit messages and deletion confirmation | 214 passed |
-| Backend — Node.js test runner | All 24 common items, older saved furniture, requests, geometry, confirmed preferences, format compatibility and AI request limits | 210 passed |
+| Backend — Node.js test runner | All 24 common items, older saved furniture, requests, geometry, confirmed preferences, format compatibility, AI request limits and startup without private settings | 221 passed |
 | Browser — Playwright | Chrome workflows, all furniture types, catalog search, dragging, AI notes and three page languages | 51 checks passed |
 
 Request-limit tests use a fake clock and fake Gemini responses. They check the minute and daily caps, shared limits across both AI endpoints, wait times, midnight resets and retries. They do not use your API key or wait a real minute or day.
+
+Startup tests use temporary settings files. They check that missing settings allow the backend to run, valid settings are respected and broken settings cannot leak a key in error messages. They never open your private settings file.
 
 To run the frontend or backend tests separately:
 
@@ -226,6 +232,7 @@ The **frontend** is what you see and use in the browser. It uses React, TypeScri
 | `server/preferencePrompt.mjs` | Instructions for turning a note into conditions |
 | `server/language.mjs` | Chooses the language Gemini should use in its replies |
 | `server/aiLimits.mjs` | Limits actual Gemini calls, including retries |
+| `server/loadConfig.mjs` | Uses safe defaults when private settings are missing and hides sensitive configuration errors |
 | `src/domain/limits.ts` | Shared room-size limits, used by the forms and data checks |
 | `src/domain/positions.ts` | Limits the number of positions searched in larger rooms |
 | `src/components/useTheme.ts`, `src/theme.css` | Saves the light/dark choice and defines the theme colours |
