@@ -1,19 +1,12 @@
 import type { Furniture, Project, Room } from './model.ts';
 import { isBed } from './model.ts';
 import { axisPositions } from './positions.ts';
-import { doorZones, getOpenings, openingSegment } from './openings.ts';
+import { entranceZones, getOpenings, openingSegment } from './openings.ts';
+import { footprint, overlaps } from './geometry.ts';
+import { inaccessibleFurniture } from './access.ts';
+import { orientation, rotations, rotationOf } from './rotation.ts';
+export { footprint, overlaps } from './geometry.ts';
 
-export function footprint(item: Furniture) {
-  return {
-    x: item.x,
-    y: item.y,
-    width: item.rotated ? item.depth : item.width,
-    depth: item.rotated ? item.width : item.depth,
-  };
-}
-export function overlaps(a: ReturnType<typeof footprint>, b: ReturnType<typeof footprint>) {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.depth && a.y + a.depth > b.y;
-}
 export function outside(item: Furniture, room: Room) {
   const r = footprint(item);
   return r.x < 0 || r.y < 0 || r.x + r.width > room.width || r.y + r.depth > room.depth;
@@ -27,7 +20,7 @@ export function clampItem(item: Furniture, room: Room): Furniture {
   };
 }
 export interface PlanIssue {
-  type: 'overlap' | 'outside' | 'door';
+  type: 'overlap' | 'outside' | 'door' | 'access';
   ids: string[];
   text: string;
 }
@@ -44,11 +37,11 @@ export function analyze(project: Project) {
   }
   for (let i = 0; i < solid.length; i++) {
     const item = solid[i];
-    if (doorZones(project.room).some((zone) => overlaps(footprint(item), zone)))
+    if (entranceZones(project.room).some((zone) => overlaps(footprint(item), zone)))
       issues.push({
         type: 'door',
         ids: [item.id],
-        text: `${item.name} is in the door opening zone.`,
+        text: `${item.name} blocks the door or entrance landing.`,
       });
     for (let j = i + 1; j < solid.length; j++) {
       if (overlaps(footprint(item), footprint(solid[j])))
@@ -58,6 +51,11 @@ export function analyze(project: Project) {
           text: `${item.name} and ${solid[j].name} overlap.`,
         });
     }
+  }
+  if (!issues.length) {
+    const blocked = inaccessibleFurniture(project);
+    if (blocked.length) issues.push({ type: 'access', ids: blocked,
+      text: 'Furniture blocks a 60 cm walking route from the entrance.' });
   }
   // Exact rectangle union, clipped to the room; overlap never counts twice.
   const rectangles = solid
@@ -107,7 +105,7 @@ type LayoutStyle = 'balanced' | 'daylight' | 'open';
 const WALL_MARGIN = 10;
 
 function canPlace(item: Furniture, room: Room, placed: Furniture[]) {
-  if (outside(item, room) || doorZones(room).some((zone) => overlaps(footprint(item), zone))) return false;
+  if (outside(item, room) || entranceZones(room).some((zone) => overlaps(footprint(item), zone))) return false;
   return !placed.some(
     (other) => other.kind !== 'rug' && overlaps(footprint(item), footprint(other)),
   );
@@ -121,6 +119,10 @@ function positionScore(item: Furniture, room: Room, style: LayoutStyle, index: n
   const wallDistance = Math.min(rect.x, rect.y, rightGap, bottomGap);
   const sideDistance = index % 2 === 0 ? rect.x : rightGap;
   let score = wallDistance * 4 + sideDistance * 0.2;
+  // Keep the back/head near a wall and the front facing into the room.
+  const backGap = rotationOf(item) === 0 ? rect.y : rotationOf(item) === 90 ? rightGap
+    : rotationOf(item) === 180 ? bottomGap : rect.x;
+  score += backGap * 0.3;
 
   if (style === 'daylight') {
     const windows = getOpenings(room).filter((opening) => opening.kind === 'window').map((opening) => openingSegment(room, opening));
@@ -147,12 +149,12 @@ function findPosition(
   style: LayoutStyle,
   index: number,
 ) {
-  let best: Furniture | null = null;
-  let bestScore = Infinity;
+  const candidates: { item: Furniture; score: number }[] = [];
 
-  for (const rotated of [false, true]) {
-    const width = rotated ? item.depth : item.width;
-    const depth = rotated ? item.width : item.depth;
+  for (const rotation of rotations) {
+    const sideways = rotation % 180 === 90;
+    const width = sideways ? item.depth : item.width;
+    const depth = sideways ? item.width : item.depth;
     const rectangles = placed.filter((other) => other.kind !== 'rug').map(footprint);
     const xs = axisPositions(room.width - width - WALL_MARGIN,
       rectangles.flatMap((r) => [r.x - width - 10, r.x + r.width + 10]), WALL_MARGIN);
@@ -160,17 +162,19 @@ function findPosition(
       rectangles.flatMap((r) => [r.y - depth - 10, r.y + r.depth + 10]), WALL_MARGIN);
     for (const x of xs) {
       for (const y of ys) {
-        const candidate = { ...item, x, y, rotated };
+        const candidate = { ...item, x, y, ...orientation(rotation) };
         if (!canPlace(candidate, room, placed)) continue;
         const score = positionScore(candidate, room, style, index);
-        if (score < bestScore) {
-          best = candidate;
-          bestScore = score;
-        }
+        candidates.push({ item: candidate, score });
       }
     }
   }
-  return best;
+  candidates.sort((a, b) => a.score - b.score);
+  // Adding solid furniture cannot reopen a passage: preserve access at each step.
+  for (const { item: candidate } of candidates.slice(0, 128)) {
+    if (!inaccessibleFurniture({ room, furniture: [...placed, candidate] }).length) return candidate;
+  }
+  return null;
 }
 
 export function generateLayouts(project: Project): LayoutOption[] {
@@ -197,12 +201,13 @@ export function generateLayouts(project: Project): LayoutOption[] {
 
     for (const item of items) {
       if (item.kind === 'rug') {
+        const size = footprint(item);
         placed.push(
           clampItem(
             {
               ...item,
-              x: (project.room.width - item.width) / 2,
-              y: (project.room.depth - item.depth) / 2,
+              x: (project.room.width - size.width) / 2,
+              y: (project.room.depth - size.depth) / 2,
             },
             project.room,
           ),

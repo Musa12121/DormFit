@@ -1,7 +1,9 @@
 import { generateLayouts } from '../src/domain/planner.ts';
 import { isProject } from '../src/domain/storage.ts';
 import { checkAiPlan, isPreferenceReview, targetOptions } from '../src/domain/ai.ts';
-import { doorZones, getOpenings, openingSegment } from '../src/domain/openings.ts';
+import { doorZones, entranceZones, getOpenings, openingSegment } from '../src/domain/openings.ts';
+import { WALKWAY_WIDTH } from '../src/domain/access.ts';
+import { rotationOf } from '../src/domain/rotation.ts';
 import { repairAiPlan } from '../src/domain/repairAiPlan.ts';
 import { planSchema, planInstructions } from './planPrompt.mjs';
 import { responseInstructions } from './language.mjs';
@@ -28,12 +30,14 @@ export async function getLayoutAdvice(payload, config, fetchImpl = fetch, signal
   const project = payload.project;
   // One example helps the model with crowded rooms; it is free to change every coordinate.
   const example = generateLayouts(project).reduce((a, b) => a.issueCount <= b.issueCount ? a : b);
-  const positions = (items) => items.map(({ id, x, y, rotated }) => ({ id, x, y, rotated }));
+  const positions = (items) => items.map(item => ({ id: item.id, x: item.x, y: item.y, rotation: rotationOf(item) }));
   const input = {
     units: 'centimetres',
     room: { ...project.room, openings: getOpenings(project.room) },
     openingSegments: getOpenings(project.room).map((opening) => ({ id: opening.id, ...openingSegment(project.room, opening) })),
     doorClearance: doorZones(project.room),
+    entranceClearance: entranceZones(project.room),
+    walkingRouteWidth: WALKWAY_WIDTH,
     allowedTargetIds: targetOptions(project).map((target) => target.id),
     ...(payload.review ? { confirmedPreferences: payload.review } : {}),
     preference: payload.prompt.trim() || 'Create a practical layout for everyday use.',

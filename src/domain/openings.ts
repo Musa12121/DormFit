@@ -41,6 +41,18 @@ export function doorZones(room: Room) {
   return getOpenings(room).filter((opening) => opening.kind === 'door').map((opening) => doorClearance(room, opening));
 }
 
+// Leave a landing beyond the swing, so opening the door also lets someone enter.
+export function entranceZones(room: Room) {
+  return getOpenings(room).filter(opening => opening.kind === 'door').map(opening => {
+    const swing = doorClearance(room, opening);
+    const horizontal = opening.wall === 'top' || opening.wall === 'bottom';
+    const extra = Math.min(60, (horizontal ? room.depth : room.width) - opening.width);
+    return { x: swing.x - (opening.wall === 'right' ? extra : 0),
+      y: swing.y - (opening.wall === 'bottom' ? extra : 0),
+      width: swing.width + (horizontal ? 0 : extra), depth: swing.depth + (horizontal ? extra : 0) };
+  });
+}
+
 export function openingsProblem(room: Room): string | null {
   if (room.openings === undefined) return null;
   if (!Array.isArray(room.openings) || room.openings.length > MAX_OPENINGS) return 'Use at most 12 doors and windows.';

@@ -1,6 +1,7 @@
 import type { Furniture } from '../domain/model';
 import { furnitureLabels } from '../domain/model';
 import { t } from '../i18n';
+import { furniturePoint, rotationOf } from '../domain/rotation';
 
 interface Props {
   item: Furniture;
@@ -10,19 +11,22 @@ interface Props {
 
 // Heights here are illustrations. Only the measured floor footprint is used for fitting.
 export default function IsoFurniture({ item, points, projectPoint }: Props) {
-  const { kind, x, y } = item;
+  const { kind } = item;
   const metal = ['fridge', 'washing-machine', 'office-chair', 'television', 'floor-lamp'].includes(kind);
   const outline = metal ? '#758594' : '#917456';
   // Work in the item's unrotated coordinate system so details rotate with the footprint.
-  const at = (u: number, v: number, z: number) => item.rotated
-    ? [x + item.depth * (1 - v), y + item.width * u, z]
-    : [x + item.width * u, y + item.depth * v, z];
+  const at = (u: number, v: number, z: number) => furniturePoint(item, item.width * u, item.depth * v, z);
   const box = (u: number, v: number, width: number, depth: number, bottom: number, top: number,
-    fill = '#e6d1b3', side = '#bb9870') => <g>
-    <polygon points={points([at(u, v + depth, bottom), at(u + width, v + depth, bottom), at(u + width, v + depth, top), at(u, v + depth, top)])} fill={side} stroke={outline} strokeWidth=".6" />
-    <polygon points={points([at(u + width, v, bottom), at(u + width, v + depth, bottom), at(u + width, v + depth, top), at(u + width, v, top)])} fill={side} stroke={outline} strokeWidth=".6" />
-    <polygon points={points([at(u, v, top), at(u + width, v, top), at(u + width, v + depth, top), at(u, v + depth, top)])} fill={fill} stroke={outline} strokeWidth=".6" />
-  </g>;
+    fill = '#e6d1b3', side = '#bb9870') => {
+      const corners = [at(u, v, top), at(u + width, v, top), at(u + width, v + depth, top), at(u, v + depth, top)];
+      const left = Math.min(...corners.map(point => point[0])), right = Math.max(...corners.map(point => point[0]));
+      const back = Math.min(...corners.map(point => point[1])), front = Math.max(...corners.map(point => point[1]));
+      return <g>
+        <polygon points={points([[left, front, bottom], [right, front, bottom], [right, front, top], [left, front, top]])} fill={side} stroke={outline} strokeWidth=".6" />
+        <polygon points={points([[right, back, bottom], [right, front, bottom], [right, front, top], [right, back, top]])} fill={side} stroke={outline} strokeWidth=".6" />
+        <polygon points={points(corners)} fill={fill} stroke={outline} strokeWidth=".6" />
+      </g>;
+    };
   const line = (a: number[], b: number[], stroke = '#8a7359', strokeWidth = 2) =>
     <path d={`M${projectPoint(a[0], a[1], a[2]).join(' ')}L${projectPoint(b[0], b[1], b[2]).join(' ')}`} fill="none" stroke={stroke} strokeWidth={strokeWidth} />;
   const frontCircle = (u: number, z: number, radius: number, height: number, fill: string, stroke = outline) =>
@@ -200,7 +204,7 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
   }
   const label = at(.5, .5, height + 8);
   const position = projectPoint(label[0], label[1], label[2]);
-  return <g data-shape={`iso-${kind}`}>
+  return <g data-shape={`iso-${kind}`} data-rotation={rotationOf(item)}>
     {drawing}
     <text x={position[0]} y={position[1]} textAnchor="middle" fontSize="8" fontWeight="600" fill="#6d5c47">{t(kind === 'shelf' ? 'Shelf' : furnitureLabels[kind])}</text>
   </g>;

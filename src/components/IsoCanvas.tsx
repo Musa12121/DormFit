@@ -4,6 +4,7 @@ import { footprint } from '../domain/planner';
 import { colors } from './FurnitureShape';
 import IsoWardrobe from './IsoWardrobe';
 import IsoFurniture from './IsoFurniture';
+import { furniturePoint, rotationOf } from '../domain/rotation';
 import { getOpenings, openingLabel, openingSegment } from '../domain/openings';
 
 export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
@@ -99,7 +100,7 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
             </g>;
           }
           if (!['bed', 'rug'].includes(item.kind)) {
-            return <g key={item.id} data-furniture={item.id} {...selectionProps}>
+            return <g key={item.id} data-furniture={item.id} data-rotation={rotationOf(item)} {...selectionProps}>
               <IsoFurniture item={item} points={points} projectPoint={p} />
             </g>;
           }
@@ -112,7 +113,7 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
           const c = colors[item.owner];
           const label = p((x + x2) / 2, (y + y2) / 2, z + 4);
           return (
-            <g key={item.id} data-furniture={item.id} {...selectionProps}>
+            <g key={item.id} data-furniture={item.id} data-rotation={rotationOf(item)} {...selectionProps}>
               <polygon
                 points={points([
                   [x, y2],
@@ -150,10 +151,10 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
               {item.kind === 'bed' && (
                 <polygon
                   points={points([
-                    [x + 10, y + 10, z + 2],
-                    [x2 - 10, y + 10, z + 2],
-                    [x2 - 10, y + r.depth * 0.23, z + 2],
-                    [x + 10, y + r.depth * 0.23, z + 2],
+                    furniturePoint(item, 10, 10, z + 2),
+                    furniturePoint(item, item.width - 10, 10, z + 2),
+                    furniturePoint(item, item.width - 10, item.depth * 0.23, z + 2),
+                    furniturePoint(item, 10, item.depth * 0.23, z + 2),
                   ])}
                   fill="#fffdf9"
                   stroke={c.stroke}

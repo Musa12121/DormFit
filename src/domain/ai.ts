@@ -1,10 +1,11 @@
-import type { Project, Furniture, Room } from './model.ts';
+import type { Project, Furniture, Room, Rotation } from './model.ts';
+import { orientation, rotations, rotationOf } from './rotation.ts';
 import { analyze, footprint } from './planner.ts';
 import type { LayoutOption } from './planner.ts';
 import { getOpenings, openingLabel, openingSegment } from './openings.ts';
 
 // A restarted backend must speak the same coordinate-based protocol as the browser.
-export const AI_PROTOCOL = 'layout-openings-review-v2';
+export const AI_PROTOCOL = 'layout-access-rotation-v3';
 
 export interface AiOptions {
   enabled: boolean;
@@ -23,7 +24,7 @@ export interface PreferenceReview {
 }
 
 export interface AiPlan {
-  positions: { id: string; x: number; y: number; rotated: boolean }[];
+  positions: { id: string; x: number; y: number; rotated: boolean; rotation?: Rotation }[];
   requirements: PlacementRequirement[];
   unmetRequests: string[];
   explanation: string;
@@ -144,8 +145,9 @@ export function readAiPlan(value: unknown, source: Project, prompt = '', review?
     if (
       !position || !ids.has(position.id) || seen.has(position.id) ||
       !Number.isFinite(position.x) || !Number.isFinite(position.y) ||
-      typeof position.rotated !== 'boolean'
-    ) return fail('Return every original furniture ID exactly once, with finite x/y and boolean rotated.');
+      (position.rotation === undefined ? typeof position.rotated !== 'boolean'
+        : !rotations.includes(position.rotation) || (position.rotated !== undefined && position.rotated !== (position.rotation % 180 === 90)))
+    ) return fail('Return every original furniture ID exactly once, with finite x/y and a valid rotation.');
     seen.add(position.id);
   }
   if (!validRequirements(plan.requirements, source)) return fail('Requirement IDs/relations must refer to supplied furniture and supported targets.');
@@ -157,7 +159,9 @@ export function readAiPlan(value: unknown, source: Project, prompt = '', review?
   }
 
   return { ok: true, plan: {
-    positions: plan.positions.map(({ id, x, y, rotated }) => ({ id, x, y, rotated })),
+    positions: plan.positions.map(position => ({ id: position.id, x: position.x, y: position.y,
+      rotated: position.rotation === undefined ? position.rotated : position.rotation % 180 === 90,
+      ...(position.rotation === undefined ? {} : { rotation: position.rotation }) })),
     requirements: plan.requirements.map(({ itemId, targetId, relation }) => ({ itemId, targetId, relation })),
     unmetRequests: [...plan.unmetRequests],
     explanation: plan.explanation,
@@ -173,7 +177,7 @@ export function checkAiPlan(value: unknown, source: Project, prompt = '', review
   const project = structuredClone(source);
   project.furniture = project.furniture.map((item) => {
     const position = plan.positions.find((position) => position.id === item.id)!;
-    return { ...item, x: position.x, y: position.y, rotated: position.rotated };
+    return { ...item, x: position.x, y: position.y, ...orientation(rotationOf(position)) };
   });
   const problems = analyze(project).issues.map((issue) => `${issue.type}: ${issue.ids.join(', ')}`);
   for (const rule of plan.requirements) {

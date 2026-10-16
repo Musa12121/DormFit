@@ -2,6 +2,7 @@ import type { FurnitureKind, Owner, Project, SavedProject } from './model.ts';
 import { supportedFurniture } from './model.ts';
 import { MAX_ROOM_CM, MIN_ROOM_CM } from './limits.ts';
 import { getOpenings, openingsProblem } from './openings.ts';
+import { rotations, isSideways } from './rotation.ts';
 
 const kinds: FurnitureKind[] = supportedFurniture.map(entry => entry.kind);
 const owners: Owner[] = ['a', 'b', 'shared'];
@@ -54,7 +55,8 @@ export function isProject(value: unknown): value is Project {
       number(f.depth, 20, 400) &&
       number(f.x, -1000, MAX_ROOM_CM + 1000) &&
       number(f.y, -1000, MAX_ROOM_CM + 1000) &&
-      typeof f.rotated === 'boolean'
+      typeof f.rotated === 'boolean' &&
+      (f.rotation === undefined || (rotations.includes(f.rotation) && f.rotated === isSideways(f)))
     );
   });
 }

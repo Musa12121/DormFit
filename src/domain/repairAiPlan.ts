@@ -1,6 +1,9 @@
 import type { Furniture, Project } from './model.ts';
 import { footprint, outside, overlaps } from './planner.ts';
-import { doorZones, getOpenings, openingSegment } from './openings.ts';
+import { entranceZones, getOpenings, openingSegment } from './openings.ts';
+import { orientation, rotationOf } from './rotation.ts';
+import { inaccessibleFurniture } from './access.ts';
+import type { Rotation } from './model.ts';
 import { checkAiPlan, isRoomTarget, readAiPlan, requirementSatisfied } from './ai.ts';
 import type { AiPlan, PreferenceReview } from './ai.ts';
 import { axisPositions } from './positions.ts';
@@ -14,7 +17,7 @@ export function repairAiPlan(value: unknown, source: Project, prompt = '', revie
   const original = checkAiPlan(plan, source, prompt, review);
   if (original.ok) return original.plan;
   const deadline = Date.now() + 1500;
-  const doors = doorZones(source.room);
+  const doors = entranceZones(source.room);
   const segments = getOpenings(source.room).map((opening) => openingSegment(source.room, opening));
 
   const choices: { item: Furniture; positions: Furniture[]; fixedRules: number }[] = [];
@@ -22,9 +25,11 @@ export function repairAiPlan(value: unknown, source: Project, prompt = '', revie
     const preferred = plan.positions.find((position) => position.id === item.id)!;
     const fixedRules = plan.requirements.filter((rule) => rule.itemId === item.id && isRoomTarget(rule.targetId));
     const positions: { item: Furniture; cost: number }[] = [];
-    for (const rotated of [preferred.rotated, !preferred.rotated]) {
-      const width = rotated ? item.depth : item.width;
-      const depth = rotated ? item.width : item.depth;
+    const start = rotationOf(preferred);
+    for (const rotation of [start, (start + 90) % 360, (start + 180) % 360, (start + 270) % 360] as Rotation[]) {
+      const sideways = rotation % 180 === 90;
+      const width = sideways ? item.depth : item.width;
+      const depth = sideways ? item.width : item.depth;
       const offsets = [-60, -40, -20, -10, 0, 10, 20, 40, 60];
       const xs = axisPositions(source.room.width - width, [
         ...offsets.map((offset) => preferred.x + offset),
@@ -37,14 +42,14 @@ export function repairAiPlan(value: unknown, source: Project, prompt = '', revie
       for (const x of xs) {
         if (Date.now() > deadline) return null;
         for (const y of ys) {
-          const candidate = { ...item, x, y, rotated };
+          const candidate = { ...item, x, y, ...orientation(rotation) };
           if (outside(candidate, source.room)) continue;
           if (item.kind !== 'rug' && doors.some((door) => overlaps(footprint(candidate), door))) continue;
           const partial = { ...source, furniture: [candidate] };
           if (!fixedRules.every((rule) => requirementSatisfied(partial, rule))) continue;
           positions.push({
             item: candidate,
-            cost: Math.hypot(x - preferred.x, y - preferred.y) + (rotated === preferred.rotated ? 0 : 20),
+            cost: Math.hypot(x - preferred.x, y - preferred.y) + (rotation === start ? 0 : 20),
           });
         }
       }
@@ -62,7 +67,7 @@ export function repairAiPlan(value: unknown, source: Project, prompt = '', revie
   let visited = 0;
   function search(index: number): boolean {
     if (++visited > 4000 || Date.now() > deadline) return false;
-    if (index === choices.length) return true;
+    if (index === choices.length) return inaccessibleFurniture({ ...source, furniture: placed }).length === 0;
     let tried = 0;
     for (const candidate of choices[index].positions) {
       if (candidate.kind !== 'rug' && placed.some((other) => other.kind !== 'rug' &&
@@ -83,7 +88,7 @@ export function repairAiPlan(value: unknown, source: Project, prompt = '', revie
 
   const repaired: AiPlan = {
     ...plan,
-    positions: placed.map(({ id, x, y, rotated }) => ({ id, x, y, rotated })),
+    positions: placed.map(({ id, x, y, rotated, rotation }) => ({ id, x, y, rotated, rotation })),
     explanation: 'Furniture positions were adjusted to fit the room while preserving the placement conditions understood by AI.',
     adjusted: true,
   };

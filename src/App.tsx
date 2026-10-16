@@ -74,7 +74,8 @@ import { useFullscreen } from './components/useFullscreen';
 import { useTheme } from './components/useTheme';
 import { MAX_ROOM_METRES } from './domain/limits';
 import { axisPositions } from './domain/positions';
-import { doorZones, fitOpenings, openingsProblem } from './domain/openings';
+import { entranceZones, fitOpenings, openingsProblem } from './domain/openings';
+import { turnFurniture, isSideways, rotationOf } from './domain/rotation';
 import OpeningEditor from './components/OpeningEditor';
 import PreferenceReviewModal from './components/PreferenceReviewModal';
 import { requestPreferenceReview } from './domain/requestPreferenceReview';
@@ -233,7 +234,7 @@ export default function App() {
   function rotate() {
     const current = ref.current.furniture.find((f) => f.id === selected);
     if (!current) return;
-    const rotated = clampItem({ ...current, rotated: !current.rotated }, ref.current.room);
+    const rotated = clampItem(turnFurniture(current), ref.current.room);
     patchItem(current.id, rotated);
   }
   function remove() {
@@ -281,7 +282,7 @@ export default function App() {
         const r = footprint({ ...added, x, y });
         if (
           entry.kind === 'rug' ||
-          (!doorZones(project.room).some((door) => overlaps(r, door)) &&
+          (!entranceZones(project.room).some((door) => overlaps(r, door)) &&
             !project.furniture.some((f) => f.kind !== 'rug' && overlaps(r, footprint(f))))
         ) {
           added.x = x;
@@ -612,14 +613,14 @@ export default function App() {
                         label={t("Furniture width")}
                         value={item.width}
                         min={20}
-                        max={Math.min(400, item.rotated ? project.room.depth : project.room.width)}
+                        max={Math.min(400, isSideways(item) ? project.room.depth : project.room.width)}
                         onChange={(v) => patchItem(item.id, { width: Math.round(v) })}
                       />
                       <NumberField
                         label={t("Furniture length")}
                         value={item.depth}
                         min={20}
-                        max={Math.min(400, item.rotated ? project.room.width : project.room.depth)}
+                        max={Math.min(400, isSideways(item) ? project.room.width : project.room.depth)}
                         onChange={(v) => patchItem(item.id, { depth: Math.round(v) })}
                       />
                     </div>
@@ -634,7 +635,7 @@ export default function App() {
                     </label>
                     <div className="inspector-actions">
                       <button className="button secondary" onClick={rotate}>
-                        <RotateCw size={14} />{t("Rotate")}</button>
+                        <RotateCw size={14} />{t("Rotate")} · {rotationOf(item)}°</button>
                       <button
                         className="icon-button danger"
                         aria-label={t("Delete furniture")}

@@ -64,6 +64,9 @@ export default function OpeningShapes({ room, mini = false, onMove, coordinate, 
           <rect x="0" y="-6" width={width} height="12" fill="#e4f0f5" stroke="#8eb8c7" strokeWidth="1.2" />
           <path d={`M0 0H${width}M${width / 2} -6V6`} stroke="#9cc0ce" />
         </> : <>
+          <rect data-door-part="landing" x="0" y={width} width={width}
+            height={Math.min(60, (wall === 'top' || wall === 'bottom' ? room.depth : room.width) - width)}
+            fill="#f59e0b" fillOpacity=".07" stroke="#d98408" strokeOpacity=".45" strokeDasharray="4 4" pointerEvents="none" />
           <rect x="0" y="-5" width={width} height="10" fill="var(--plan-floor, #fcfbf8)" />
           <path data-door-part="swing" d={`M0 0v${width}a${width} ${width} 0 0 0 ${width} -${width}Z`} fill="#f59e0b" fillOpacity=".2" stroke="#d98408" strokeWidth="1.6" strokeDasharray="5 3" />
           <path data-door-part="frame" d={`M0 -5V5M${width} -5V5M0 0H${width}`} stroke="#d98408" strokeWidth="4" />
@@ -73,6 +76,10 @@ export default function OpeningShapes({ room, mini = false, onMove, coordinate, 
         </>}
         {onMove && <path data-opening-handle={opening.id} d={`M0 0H${width}`} stroke="transparent" strokeWidth="24" vectorEffect="non-scaling-stroke" pointerEvents="stroke" />}
         </g>
+        {kind === 'door' && !mini && <text
+          x={wall === 'top' || wall === 'bottom' ? offset + width / 2 : wall === 'left' ? width + 30 : room.width - width - 30}
+          y={wall === 'left' || wall === 'right' ? offset + width / 2 : wall === 'top' ? width + 30 : room.depth - width - 30}
+          textAnchor="middle" fontSize="7" fill="#b97319" pointerEvents="none">{t('KEEP CLEAR')}</text>}
         {!mini && <text x={labelX} y={labelY} textAnchor="middle" fontSize="9" fontWeight={kind === 'door' ? 800 : 600} fill={kind === 'door' ? '#b97319' : '#8999ad'}
           transform={wall === 'left' || wall === 'right' ? `rotate(-90 ${labelX} ${labelY})` : undefined}>{t(label.toUpperCase())}</text>}
       </g>;

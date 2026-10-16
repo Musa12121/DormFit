@@ -6,6 +6,7 @@ import { moveOpening } from '../domain/openings';
 import { analyze, clampItem, footprint } from '../domain/planner';
 import { FurnitureShape } from './FurnitureShape';
 import OpeningShapes from './OpeningShapes';
+import { furnitureTransform, rotationOf } from '../domain/rotation';
 
 interface Props {
   project: Project;
@@ -190,7 +191,8 @@ export default function PlanCanvas({
                 <title>
                   {t(item.name)} · {item.width} × {item.depth}{t(" cm")}</title>
                 <g
-                  transform={item.rotated ? `translate(${item.depth} 0) rotate(90)` : undefined}
+                  transform={furnitureTransform(item)}
+                  data-rotation={rotationOf(item)}
                   filter={mini ? undefined : `url(#shadow-${gridId})`}
                 >
                   <FurnitureShape item={item} mini={mini} />

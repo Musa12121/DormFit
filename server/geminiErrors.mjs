@@ -10,7 +10,7 @@ export class ApiError extends Error {
 export function planValidationError(problems) {
   const labels = {
     overlap: 'furniture overlaps', outside: 'room boundaries',
-    door: 'door zone', placement: 'near and away conditions',
+    door: 'door zone', access: 'walking access', placement: 'near and away conditions',
     furniture: 'furniture counts and IDs', note: 'converting the note to conditions',
     format: 'AI response format',
   };
@@ -18,6 +18,7 @@ export function planValidationError(problems) {
     if (problem.startsWith('overlap:')) return 'overlap';
     if (problem.startsWith('outside:')) return 'outside';
     if (problem.startsWith('door:')) return 'door';
+    if (problem.startsWith('access:')) return 'access';
     if (problem.includes(' must be near ') || problem.includes(' must be away ')) return 'placement';
     if (problem.startsWith('Return every original')) return 'furniture';
     if (problem.startsWith('A note was supplied')) return 'note';

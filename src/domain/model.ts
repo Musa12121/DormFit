@@ -4,6 +4,7 @@ export type FurnitureKind = 'bed' | 'desk' | 'wardrobe' | 'shelf' | 'plant' | 'r
   | 'side-table' | 'tv-stand' | 'vanity' | 'ottoman' | 'clothes-rack'
   | 'office-chair' | 'television' | 'fridge' | 'washing-machine' | 'storage-box' | 'floor-lamp';
 export type Owner = 'a' | 'b' | 'shared';
+export type Rotation = 0 | 90 | 180 | 270;
 // All stored measurements are centimetres. Forms convert metres at the boundary.
 export type Wall = 'top' | 'right' | 'bottom' | 'left';
 export interface RoomOpening {
@@ -31,6 +32,8 @@ export interface Furniture {
   x: number;
   y: number;
   rotated: boolean;
+  // Older files have only rotated. New edits also store the full direction.
+  rotation?: Rotation;
   owner: Owner;
 }
 export interface Roommate {
