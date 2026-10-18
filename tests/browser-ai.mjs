@@ -17,7 +17,7 @@ try {
   }, plantProject());
   await page.goto(base, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Next: furniture', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Create an AI layout using my notes' }).check();
+  await page.getByRole('checkbox', { name: 'Create an AI layout' }).check();
   const nearPrompt = 'Place the plant near the window.';
   let expectedPrompt = nearPrompt;
   await page.getByLabel('Your room preferences', { exact: true }).fill(expectedPrompt);

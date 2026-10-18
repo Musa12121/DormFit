@@ -3,9 +3,10 @@ import { orientation, rotations, rotationOf } from './rotation.ts';
 import { analyze, footprint } from './planner.ts';
 import type { LayoutOption } from './planner.ts';
 import { getOpenings, openingLabel, openingSegment } from './openings.ts';
+import { requiresFourSeatDining } from './usability.ts';
 
 // A restarted backend must speak the same coordinate-based protocol as the browser.
-export const AI_PROTOCOL = 'layout-access-rotation-v3';
+export const AI_PROTOCOL = 'layout-independent-ai-v13';
 
 export interface AiOptions {
   enabled: boolean;
@@ -24,6 +25,7 @@ export interface PreferenceReview {
 }
 
 export interface AiPlan {
+  omittedChairIds?: string[];
   positions: { id: string; x: number; y: number; rotated: boolean; rotation?: Rotation }[];
   requirements: PlacementRequirement[];
   unmetRequests: string[];
@@ -119,7 +121,7 @@ export function requirementSatisfied(project: Project, rule: PlacementRequiremen
   return Number.isFinite(distance) && (rule.relation === 'near' ? distance <= 60 : distance >= 100);
 }
 
-// Used on both server and browser. Only positions can change; original sizes/counts stay intact.
+// Only explicitly reported chairs may be left out. Every other original ID and size stays intact.
 export function readAiPlan(value: unknown, source: Project, prompt = '', review?: PreferenceReview):
   { ok: true; plan: AiPlan } | { ok: false; problems: string[] } {
   const fail = (message: string): { ok: false; problems: string[] } => ({ ok: false, problems: [message] });
@@ -133,17 +135,24 @@ export function readAiPlan(value: unknown, source: Project, prompt = '', review?
     !Array.isArray(plan.unmetRequests) || plan.unmetRequests.length > 8 ||
     !plan.unmetRequests.every((note) => text(note, 300)) ||
     !Array.isArray(plan.requirements) || plan.requirements.length > 30 ||
-    !Array.isArray(plan.positions) || plan.positions.length !== source.furniture.length
+    !Array.isArray(plan.positions)
   ) return fail('Missing or invalid positions, requirements, explanation, tips or unmetRequests.');
   if (!review && prompt.trim() && plan.requirements.length === 0 && plan.unmetRequests.length === 0) {
     return fail('A note was supplied. Extract its spatial requirements or explain unsupported requests in unmetRequests.');
   }
 
   const ids = new Set(source.furniture.map((item) => item.id));
+  const omitted = plan.omittedChairIds ?? [];
+  if (!Array.isArray(omitted) || omitted.length > source.furniture.length
+    || new Set(omitted).size !== omitted.length || omitted.some(id => typeof id !== 'string'
+      || !source.furniture.some(item => item.id === id && ['chair', 'office-chair'].includes(item.kind)))
+    || plan.positions.length + omitted.length !== source.furniture.length) {
+    return fail('Return every original furniture ID exactly once, either positioned or explicitly omitted as a chair.');
+  }
   const seen = new Set<string>();
   for (const position of plan.positions) {
     if (
-      !position || !ids.has(position.id) || seen.has(position.id) ||
+      !position || !ids.has(position.id) || omitted.includes(position.id) || seen.has(position.id) ||
       !Number.isFinite(position.x) || !Number.isFinite(position.y) ||
       (position.rotation === undefined ? typeof position.rotated !== 'boolean'
         : !rotations.includes(position.rotation) || (position.rotated !== undefined && position.rotated !== (position.rotation % 180 === 90)))
@@ -159,6 +168,7 @@ export function readAiPlan(value: unknown, source: Project, prompt = '', review?
   }
 
   return { ok: true, plan: {
+    ...(omitted.length ? { omittedChairIds: [...omitted] } : {}),
     positions: plan.positions.map(position => ({ id: position.id, x: position.x, y: position.y,
       rotated: position.rotation === undefined ? position.rotated : position.rotation % 180 === 90,
       ...(position.rotation === undefined ? {} : { rotation: position.rotation }) })),
@@ -175,11 +185,16 @@ export function checkAiPlan(value: unknown, source: Project, prompt = '', review
   if (!parsed.ok) return parsed;
   const plan = parsed.plan;
   const project = structuredClone(source);
-  project.furniture = project.furniture.map((item) => {
+  const omitted = new Set(plan.omittedChairIds ?? []);
+  project.omittedChairs = [...(source.omittedChairs ?? []), ...source.furniture.filter(item => omitted.has(item.id))];
+  project.furniture = project.furniture.filter(item => !omitted.has(item.id)).map((item) => {
     const position = plan.positions.find((position) => position.id === item.id)!;
     return { ...item, x: position.x, y: position.y, ...orientation(rotationOf(position)) };
   });
   const problems = analyze(project).issues.map((issue) => `${issue.type}: ${issue.ids.join(', ')}`);
+  if (requiresFourSeatDining(source.furniture) && project.furniture.filter(item => item.kind === 'chair').length !== 4) {
+    problems.push('facing: Keep all four dining chairs, with two on each opposite long side.');
+  }
   for (const rule of plan.requirements) {
     const distance = requirementDistance(project, rule);
     if (!requirementSatisfied(project, rule)) {
@@ -192,7 +207,7 @@ export function checkAiPlan(value: unknown, source: Project, prompt = '', review
     ok: true,
     plan,
     layout: {
-      id: 'ai', name: plan.unmetRequests.length ? 'AI layout · partially matched' : 'AI layout for your preferences',
+      id: 'ai', name: plan.unmetRequests.length || plan.omittedChairIds?.length ? 'AI layout · partially matched' : 'AI layout for your preferences',
       description: plan.adjusted ? 'AI layout adjusted to fit the room' : 'Gemini placed the furniture',
       project, issueCount: 0,
     },

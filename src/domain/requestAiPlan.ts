@@ -3,6 +3,7 @@ import { AI_PROTOCOL, checkAiPlan } from './ai';
 import type { PreferenceReview } from './ai';
 import { getLanguage } from '../i18n';
 import type { Language } from '../i18n';
+import { AI_CLIENT_GRACE_MS, AI_LAYOUT_TIMEOUT_MS } from './aiTiming';
 
 export async function requestAiPlan(
   project: Project,
@@ -17,10 +18,13 @@ export async function requestAiPlan(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ project, prompt, language, ...(review ? { review } : {}) }),
-      signal: AbortSignal.any([signal, AbortSignal.timeout(60_000)]),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(AI_LAYOUT_TIMEOUT_MS + AI_CLIENT_GRACE_MS)]),
     });
   } catch (error) {
     if (signal.aborted) throw error;
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'TimeoutError') {
+      throw new Error('Gemini took too long to respond. (GEMINI_TIMEOUT)');
+    }
     throw new Error('Could not reach AI. Make sure the backend is running with npm run dev.');
   }
   let body: unknown;

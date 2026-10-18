@@ -1,5 +1,6 @@
 import { access } from 'node:fs/promises';
 import { geminiConfig as defaults } from './config.example.mjs';
+import { validModelSettings } from './modelPolicy.mjs';
 
 export async function loadGeminiConfig(configUrl = new URL('./config.local.mjs', import.meta.url)) {
   try {
@@ -7,12 +8,12 @@ export async function loadGeminiConfig(configUrl = new URL('./config.local.mjs',
       await access(configUrl);
     } catch (error) {
       // A fresh clone can run without creating a private settings file.
-      if (error.code === 'ENOENT') return { ...defaults };
+      if (error.code === 'ENOENT') return { ...defaults, models: [...defaults.models] };
       throw error;
     }
 
     const { geminiConfig } = await import(configUrl.href);
-    if (typeof geminiConfig?.apiKey !== 'string' || typeof geminiConfig?.model !== 'string') {
+    if (typeof geminiConfig?.apiKey !== 'string' || !validModelSettings(geminiConfig)) {
       throw new Error('Invalid settings');
     }
     return geminiConfig;

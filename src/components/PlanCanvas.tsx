@@ -2,6 +2,7 @@ import { t } from '../i18n';
 import { useId, useRef } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
 import type { Furniture, Project, Room } from '../domain/model';
+import { isWallMounted } from '../domain/model';
 import { moveOpening } from '../domain/openings';
 import { analyze, clampItem, footprint } from '../domain/planner';
 import { FurnitureShape } from './FurnitureShape';
@@ -163,7 +164,8 @@ export default function PlanCanvas({
           />
         )}
         {[...project.furniture]
-          .sort((a, b) => Number(a.kind !== 'rug') - Number(b.kind !== 'rug'))
+          .sort((a, b) => Number(a.kind !== 'rug') + Number(isWallMounted(a))
+            - Number(b.kind !== 'rug') - Number(isWallMounted(b)))
           .map((item) => {
             const f = footprint(item),
               isSelected = selected === item.id && !mini,
@@ -245,7 +247,7 @@ export default function PlanCanvas({
                       y={f.depth + 21.5}
                       fill="white"
                       textAnchor="middle"
-                      fontSize="8"
+                      fontSize={8.48}
                     >
                       {f.width} × {f.depth}{t(" cm")}</text>
                   </g>
@@ -273,14 +275,14 @@ export default function PlanCanvas({
               x={room.width / 2}
               y="-29"
               textAnchor="middle"
-              fontSize="9"
+              fontSize={9.54}
               fill="#7d8591"
               stroke="none"
             >
               {room.width}{t(" cm")}</text>
             <g transform={`translate(-30 ${room.depth / 2}) rotate(-90)`}>
               <rect x="-25" y="-8" width="50" height="16" fill="#fcfbf8" stroke="none" />
-              <text y="3" textAnchor="middle" fontSize="9" fill="#7d8591" stroke="none">
+              <text y="3" textAnchor="middle" fontSize={9.54} fill="#7d8591" stroke="none">
                 {room.depth}{t(" cm")}</text>
             </g>
           </g>

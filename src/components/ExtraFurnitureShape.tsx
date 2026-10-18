@@ -24,12 +24,11 @@ export default function ExtraFurnitureShape({ item }: { item: Furniture }) {
       <rect x="8" y="29" width="8" height="37" rx="4" fill="#344b5d" /><rect x="84" y="29" width="8" height="37" rx="4" fill="#344b5d" />
     </g>;
   } else if (kind === 'television') {
-    drawing = <>
-      <rect x="2" y="3" width="96" height="94" rx="3" fill="#e1e6e9" stroke="#7e8d99" />
-      <path d="M25 72L15 94M75 72L85 94" stroke="#354957" strokeWidth="6" />
+    drawing = <g data-furniture-part="wall-mount">
+      <path d="M38 3H62M50 3V28" stroke="#7e8d99" strokeWidth="8" />
       <rect x="5" y="28" width="90" height="26" rx="3" fill="#283b50" stroke="#172535" strokeWidth="2" />
       <path d="M11 33H89" stroke="#6f8ba2" strokeWidth="2" />
-    </>;
+    </g>;
   } else if (kind === 'fridge') {
     drawing = <g data-furniture-part="fridge-door">
       <rect x="3" y="2" width="94" height="96" rx="6" fill="#e9eef1" stroke="#8595a2" strokeWidth="2" />
@@ -131,7 +130,7 @@ export default function ExtraFurnitureShape({ item }: { item: Furniture }) {
       {[15, 85].flatMap(x => [15, 85].map(y => <circle key={`${x}-${y}`} cx={x} cy={y} r="8" fill={edge} />))}
       {kind === 'side-table' ? <ellipse cx="50" cy="50" rx="47" ry="47" fill={wood} stroke={edge} strokeWidth="2" />
         : <rect x="2" y="2" width="96" height="96" rx={kind === 'coffee-table' ? 14 : 5} fill={wood} stroke={edge} strokeWidth="2" />}
-      {kind === 'dining-table' ? [25, 75].map(x => <g key={x}><circle cx={x} cy="50" r="17" fill="#fffaf0" stroke="#cbbda9" /><circle cx={x} cy="50" r="11" fill="none" stroke="#dcd2c4" /></g>)
+      {kind === 'dining-table' ? [25, 75].flatMap(x => [25, 75].map(y => <g key={`${x}-${y}`} data-furniture-part="plate"><circle cx={x} cy={y} r="12" fill="#fffaf0" stroke="#cbbda9" /><circle cx={x} cy={y} r="8" fill="none" stroke="#dcd2c4" /></g>))
         : <><rect x="24" y="30" width="30" height="39" rx="2" fill="#9bafbd" transform="rotate(-8 39 50)" /><circle cx="72" cy="56" r="10" fill="#fffaf0" stroke={edge} /></>}
     </>;
   }

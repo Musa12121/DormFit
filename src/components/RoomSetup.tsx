@@ -22,6 +22,7 @@ import { fitOpenings, openingsProblem } from '../domain/openings';
 import { MAX_ROOM_METRES } from '../domain/limits';
 import { clearValidation, showValidation } from './formValidation';
 import FurnitureSearch, { matchesFurniture } from './FurnitureSearch';
+import TermsNotice from './TermsNotice';
 
 
 interface Props {
@@ -34,6 +35,7 @@ interface Props {
 
 export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange, onGenerate }: Props) {
   const [step, setStep] = useState(1);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [width, setWidth] = useState(String(project.room.width / 100));
   const [length, setLength] = useState(String(project.room.depth / 100));
@@ -83,6 +85,7 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
       count: choice.count,
       width: Math.round(Number(choice.width)),
       depth: Math.round(Number(choice.depth)),
+      ...(choice.kind === 'television' ? { wallMounted: true } : {}),
     }));
     onGenerate(room, requests);
   }
@@ -100,6 +103,7 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
         <li>
           <span>03</span>{t("Layout suggestions")}</li>
       </ol>
+      {termsOpen && <TermsNotice onClose={() => setTermsOpen(false)} />}
 
       {step === 1 ? (
         <form
@@ -114,6 +118,11 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
             <span className="eyebrow">{t("STEP 01 / 03")}</span>
             <h2>{t("What size is your room?")}</h2>
             <p>{t("Enter the width and length. We will use these to create your layouts.")}</p>
+            <div className="setup-privacy-notice">
+              <strong>{t('Before entering measurements')}</strong>
+              <p>{t('Please read our Terms & privacy. Regular layouts are calculated in your browser. AI is optional and sends room details and your note to Google.')}</p>
+              <button type="button" onClick={() => setTermsOpen(true)}>{t('Read Terms & privacy')}</button>
+            </div>
             <div className="setup-dimensions">
               <label className="setup-input">{t("Room width")}<div>
                   <input

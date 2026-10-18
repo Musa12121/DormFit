@@ -38,19 +38,27 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
     <polygon points={points([at(u, 1, z), at(u + width, 1, z), at(u + width, 1, z + height), at(u, 1, z + height)])} fill={fill} stroke={outline} strokeWidth=".6" />;
   let drawing, height = 40;
   if (kind === 'desk') {
-    height = 46;
+    height = 84;
+    const accessories = [
+      { key: 'keyboard', centre: at(.48, .73, 0), drawing: <g data-furniture-part="keyboard">
+        {box(.28, .65, .4, .16, 46.5, 48, '#c7d0d8', '#8799a8')}
+        {[.69, .73, .77].map(v => <g key={v}>{line(at(.31, v, 48.2), at(.65, v, 48.2), '#788d9d', .65)}</g>)}
+        {box(.79, .68, .07, .1, 46.5, 48.5, '#a8bac7', '#7c91a1')}
+      </g> },
+      { key: 'monitor', centre: at(.5, .22, 0), drawing: <g data-furniture-part="monitor">
+        {box(.39, .23, .22, .25, 46, 48, '#657d8f', '#455b6b')}
+        {box(.47, .25, .06, .1, 48, 56, '#596e80', '#455b6b')}
+        {box(.25, .2, .52, .04, 56, 84, '#465c70', '#283e52')}
+        {[0, 270].includes(rotationOf(item)) && <polygon data-furniture-part="monitor-screen"
+          points={points([at(.28, .245, 58), at(.74, .245, 58), at(.74, .245, 82), at(.28, .245, 82)])}
+          fill="#93b6ce" stroke="#314a5d" strokeWidth=".5" />}
+      </g> },
+    ].sort((a, b) => a.centre[0] + a.centre[1] - b.centre[0] - b.centre[1]);
     drawing = <>
-      {[.06, .86].flatMap(u => [.06, .62].map(v => <g key={`${u}-${v}`}>{box(u, v, .08, .08, 0, 42)}</g>))}
-      {box(.02, .02, .96, .72, 42, 46)}
-      {box(.47, .3, .07, .15, 46, 55, '#596e80', '#455b6b')}
-      {box(.3, .19, .42, .05, 55, 73, '#465c70', '#283e52')}
-      <polygon points={points([at(.32, .245, 57), at(.7, .245, 57), at(.7, .245, 71), at(.32, .245, 71)])} fill="#93b6ce" stroke="#314a5d" strokeWidth=".5" />
-      {box(.35, .5, .32, .12, 46, 48, '#b6c4ce', '#8b9eac')}
-      {box(.35, .79, .3, .2, 20, 25, '#b9cbd9', '#829bad')}
-      {[.37, .59].flatMap(u => [.81, .94].map(v => <g key={`${u}-${v}`}>{box(u, v, .04, .04, 0, 20)}</g>))}
-      {box(.35, .96, .3, .03, 25, 40, '#b9cbd9', '#829bad')}
+      {[.06, .86].flatMap(u => [.06, .86].map(v => <g key={`${u}-${v}`}>{box(u, v, .08, .08, 0, 42)}</g>))}
+      {box(.02, .02, .96, .96, 42, 46)}
+      {accessories.map(part => <g key={part.key} data-desk-accessory={part.key}>{part.drawing}</g>)}
     </>;
-    height = 73;
   } else if (kind === 'shelf') {
     height = 105;
     drawing = <>
@@ -93,12 +101,15 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
       {frontCircle(.46, 29, .13, 6, '#86acc5')}{frontCircle(.82, 25, .035, 3.5, '#6b8091')}
     </g>;
   } else if (kind === 'television') {
-    height = 66;
-    drawing = <>
-      {box(.08, .3, .08, .6, 0, 5, '#455b6d', '#34495a')}{box(.84, .3, .08, .6, 0, 5, '#455b6d', '#34495a')}
-      {box(.02, .35, .96, .13, 7, height, '#344c63', '#253a4e')}
-      <polygon data-furniture-part="screen" points={points([at(.06, .49, 11), at(.94, .49, 11), at(.94, .49, 62), at(.06, .49, 62)])} fill="#678da8" stroke="#182d40" />
-    </>;
+    height = 74;
+    const bottom = 22;
+    const back = .08;
+    const front = back + .14;
+    drawing = <g data-furniture-part="wall-mount">
+      {box(.4, 0, .2, .08, 40, 55, '#455b6d', '#34495a')}
+      {box(.02, back, .96, .13, bottom, height, '#344c63', '#253a4e')}
+      <polygon data-furniture-part="screen" points={points([at(.06, front, bottom + 4), at(.94, front, bottom + 4), at(.94, front, height - 4), at(.06, front, height - 4)])} fill="#678da8" stroke="#182d40" />
+    </g>;
   } else if (kind === 'floor-lamp') {
     height = 96;
     const circle = (radius: number, z: number) => Array.from({ length: 32 }, (_, i) => at(.5 + Math.cos(i * Math.PI / 16) * radius, .5 + Math.sin(i * Math.PI / 16) * radius, z));
@@ -152,17 +163,34 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
   } else if (kind === 'sofa' || kind === 'armchair') {
     height = 58;
     const seats = kind === 'sofa' ? 3 : 1;
+    const parts = [
+      { key: 'sofa-back', centre: at(.5, .11, 0), drawing: box(.04, .02, .92, .18, 22, 58, '#d9e4e9', '#9baeba') },
+      ...Array.from({ length: seats }, (_, i) => ({ key: `sofa-cushion-${i}`,
+        centre: at(.15 + .7 * (i + .5) / seats, .55, 0),
+        drawing: box(.15 + .7 * i / seats, .24, .68 / seats, .63, 22, 30, '#dce6e9', '#a5b9c2') })),
+      { key: 'sofa-arm-left', centre: at(.08, .57, 0), drawing: box(.02, .18, .12, .78, 22, 42, '#c0d0d9') },
+      { key: 'sofa-arm-right', centre: at(.92, .57, 0), drawing: box(.86, .18, .12, .78, 22, 42, '#c0d0d9') },
+    ].sort((a, b) => a.centre[0] + a.centre[1] - b.centre[0] - b.centre[1]);
     drawing = <>
       {box(.04, .04, .92, .92, 9, 22, '#a6bac7', '#8da3b1')}
-      {box(.04, .02, .92, .18, 22, 58, '#d9e4e9', '#9baeba')}
-      {Array.from({ length: seats }, (_, i) => <g key={i}>{box(.15 + .7 * i / seats, .24, .68 / seats, .63, 22, 30, '#dce6e9', '#a5b9c2')}</g>)}
-      {box(.02, .18, .12, .78, 22, 42, '#c0d0d9')}{box(.86, .18, .12, .78, 22, 42, '#c0d0d9')}
+      {parts.map(part => <g key={part.key} data-furniture-part={part.key}>{part.drawing}</g>)}
     </>;
   } else if (['coffee-table', 'dining-table', 'side-table', 'bench', 'stool', 'vanity'].includes(kind)) {
     height = ['coffee-table', 'side-table', 'bench', 'stool'].includes(kind) ? 30 : 46;
     drawing = <>
       {[.07, .85].flatMap(u => [.07, .85].map(v => <g key={`${u}-${v}`}>{box(u, v, .08, .08, 0, height - 4)}</g>))}
       {box(.02, .02, .96, .96, height - 4, height)}
+      {kind === 'dining-table' && [.25, .75].flatMap(u => [.25, .75].map(v => {
+        const radius = Math.min(11, item.width * .18, item.depth * .18);
+        const ring = (r: number) => points(Array.from({ length: 32 }, (_, index) => {
+          const angle = index * Math.PI / 16;
+          return at(u + Math.cos(angle) * r / item.width, v + Math.sin(angle) * r / item.depth, height + .5);
+        }));
+        return <g key={`${u}-${v}`} data-furniture-part="plate">
+          <polygon points={ring(radius)} fill="#fffaf0" stroke="#cbbda9" strokeWidth=".6" />
+          <polygon points={ring(radius * .68)} fill="none" stroke="#dcd2c4" strokeWidth=".5" />
+        </g>;
+      }))}
       {kind === 'vanity' && box(.17, .04, .66, .04, height, height + 43, '#cce0e6', '#d9bd97')}
     </>;
     if (kind === 'vanity') height += 43;
@@ -206,6 +234,6 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
   const position = projectPoint(label[0], label[1], label[2]);
   return <g data-shape={`iso-${kind}`} data-rotation={rotationOf(item)}>
     {drawing}
-    <text x={position[0]} y={position[1]} textAnchor="middle" fontSize="8" fontWeight="600" fill="#6d5c47">{t(kind === 'shelf' ? 'Shelf' : furnitureLabels[kind])}</text>
+    <text x={position[0]} y={position[1]} textAnchor="middle" fontSize={8.48} fontWeight="600" fill="#6d5c47">{t(kind === 'shelf' ? 'Shelf' : furnitureLabels[kind])}</text>
   </g>;
 }

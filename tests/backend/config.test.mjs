@@ -32,6 +32,21 @@ test('valid private settings override defaults', async t => {
   assert.deepEqual(await loadGeminiConfig(url), { apiKey: 'fake-key', model: 'fake-model' });
 });
 
+test('explicit model priority lists are accepted without changing the key settings', async t => {
+  const url = await settings(t, "export const geminiConfig = { apiKey: 'fake-key', model: 'test-strong', models: ['test-strong', 'test-lite'] };");
+  assert.deepEqual((await loadGeminiConfig(url)).models, ['test-strong', 'test-lite']);
+});
+
+for (const models of [[], ['same', 'same'], ['bad/model'], [''], [123], 'test-model', Array.from({ length: 6 }, (_, i) => `model-${i}`)]) {
+  test(`invalid model order is rejected safely (${JSON.stringify(models)})`, async t => {
+    const url = await settings(t, `export const geminiConfig = ${JSON.stringify({ apiKey: 'fake-secret-marker', model: 'test-model', models })};`);
+    await assert.rejects(loadGeminiConfig(url), error => {
+      assert.doesNotMatch(error.stack, /fake-secret-marker/);
+      return /Could not read backend settings/.test(error.message);
+    });
+  });
+}
+
 test('an existing empty key is accepted for regular layouts', async t => {
   const url = await settings(t, "export const geminiConfig = { apiKey: '', model: 'fake-model' };");
   assert.equal((await loadGeminiConfig(url)).apiKey, '');

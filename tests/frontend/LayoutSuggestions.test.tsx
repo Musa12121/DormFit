@@ -37,6 +37,10 @@ describe('layout suggestions and AI feedback', () => {
     const { onEdit } = setup(); fireEvent.click(screen.getByRole('button', { name: /Change sizes and quantities/ }));
     expect(onEdit).toHaveBeenCalledOnce();
   });
+  it('explains when the search finds fewer than three distinct regular arrangements', () => {
+    setup({ layouts: generateLayouts(project()).slice(0, 1) });
+    expect(screen.getByText('The search found fewer than three distinct arrangements.')).toBeVisible();
+  });
   it('offers regeneration when layouts have been invalidated', () => {
     const { onGenerate } = setup({ layouts: [] });
     fireEvent.click(screen.getByRole('button', { name: /Find new layouts/ }));
@@ -52,7 +56,7 @@ describe('layout suggestions and AI feedback', () => {
   });
   it('explains that loading local layouts do not apply the note', () => {
     setup({ aiStatus: { kind: 'loading' }, busy: true });
-    expect(screen.getByRole('status')).toHaveTextContent('Gemini is creating a layout using your notes');
+    expect(screen.getByRole('status')).toHaveTextContent('Gemini is creating a layout for your room');
     expect(screen.getByRole('status')).toHaveTextContent('do not use your notes');
   });
   it('shows actual AI layout and the interpreted plant/window requirement', () => {

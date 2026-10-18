@@ -1,6 +1,7 @@
 @import './fonts.css';
 
 :root {
+  --text-scale: 1.06;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
   color: var(--ink);
   background: var(--surface-soft);
@@ -8,7 +9,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   font-weight: 400;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale));
   --ink: #2c3340;
   --muted: #89919e;
   --blue: #5879e9;
@@ -114,7 +115,7 @@ svg {
   align-items: center;
   gap: 10px;
   font-family: Manrope, 'Segoe UI', sans-serif;
-  font-size: 25px;
+  font-size: calc(25px * var(--text-scale));
   font-weight: 800;
   letter-spacing: -1.25px;
 }
@@ -144,7 +145,7 @@ svg {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   color: var(--muted);
   position: relative;
   padding: 0 2px;
@@ -178,7 +179,7 @@ svg {
   border-radius: 5px;
   min-width: 19px;
   height: 18px;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
 }
 .header-actions {
@@ -194,7 +195,7 @@ svg {
   min-height: 40px;
   padding: 10px 15px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   font-weight: 550;
   line-height: 1.35;
   white-space: nowrap;
@@ -289,7 +290,7 @@ svg {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   margin-bottom: 13px;
 }
 .breadcrumb span:last-child {
@@ -306,7 +307,7 @@ svg {
 }
 h1 {
   font-family: Manrope, 'Segoe UI', sans-serif;
-  font-size: 36px;
+  font-size: calc(36px * var(--text-scale));
   font-weight: 750;
   letter-spacing: -1.5px;
   line-height: 1.25;
@@ -316,7 +317,7 @@ h1 > span {
   font-weight: 500;
 }
 .studio-label {
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   letter-spacing: 1.25px;
   font-weight: 650;
   background: var(--accent-soft);
@@ -327,7 +328,7 @@ h1 > span {
   margin-top: 4px;
 }
 .intro p {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   line-height: 1.6;
   color: var(--muted);
   margin-top: 8px;
@@ -350,11 +351,11 @@ h1 > span {
   gap: 5px;
 }
 .intro-members strong {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   font-weight: 550;
 }
 .intro-members > div:last-child > span {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
 }
 .owner-a {
@@ -374,7 +375,7 @@ h1 > span {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
 }
 .autosave > span,
 .status-dot,
@@ -416,13 +417,13 @@ h1 > span {
   padding: 21px 20px 17px;
 }
 .eyebrow {
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   letter-spacing: 1.65px;
   font-weight: 650;
   color: var(--muted);
 }
 .step-counter {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   letter-spacing: 0.6px;
   color: var(--muted);
 }
@@ -440,7 +441,7 @@ h1 > span {
   gap: 6px;
   padding: 8px 12px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   font-weight: 500;
   border-radius: 5px;
 }
@@ -456,7 +457,7 @@ h1 > span {
   flex: 1;
 }
 .sidebar-tabs small {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   background: var(--accent-soft);
   border-radius: 4px;
   padding: 1px 4px;
@@ -472,7 +473,7 @@ h1 > span {
   gap: 8px;
 }
 .section-label h2 {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   font-weight: 600;
   letter-spacing: -0.15px;
 }
@@ -481,7 +482,7 @@ h1 > span {
 }
 .small-muted {
   color: var(--muted);
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   line-height: 1.7;
   margin-top: 7px;
 }
@@ -505,14 +506,14 @@ h1 > span {
 }
 .outline-inner > span {
   font-family: Manrope, sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
   letter-spacing: -0.5px;
   font-weight: 650;
   color: var(--blue);
 }
 .outline-inner > small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
 }
 .outline-window {
   position: absolute;
@@ -539,14 +540,14 @@ h1 > span {
   position: absolute;
   left: 57px;
   bottom: -17px;
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   color: var(--muted);
 }
 .outline-vertical {
   position: absolute;
   left: -36px;
   top: 45px;
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   color: var(--muted);
   transform: rotate(-90deg);
 }
@@ -560,7 +561,7 @@ h1 > span {
 }
 .number-field > label {
   display: block;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
   margin-bottom: 7px;
 }
@@ -579,7 +580,7 @@ h1 > span {
   width: 100%;
   padding: 9px 0 9px 11px;
   outline: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   color: var(--blue);
   font-variant-numeric: tabular-nums;
 }
@@ -588,7 +589,7 @@ h1 > span {
   box-shadow: 0 0 0 2px #edf1ff;
 }
 .number-field > div > span {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
   padding: 0 10px 0 4px;
 }
@@ -598,7 +599,7 @@ h1 > span {
 .field-error small {
   display: block;
   color: var(--warning);
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   margin-top: 5px;
 }
 .area-pill {
@@ -610,7 +611,7 @@ h1 > span {
   padding: 10px;
   border-radius: 6px;
   margin-top: 12px;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
 }
 .area-pill > svg {
@@ -644,13 +645,13 @@ h1 > span {
   margin-top: 1px;
 }
 .tip > p {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--warning);
   line-height: 1.7;
 }
 .room-settings > .button {
   justify-content: space-between;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
 }
 .sidebar-footer {
   border-top: 1px solid var(--border);
@@ -660,7 +661,7 @@ h1 > span {
   gap: 7px;
   background: var(--surface);
   color: var(--muted);
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
 }
 .sidebar-footer > svg {
   color: var(--blue);
@@ -672,7 +673,7 @@ h1 > span {
   color: var(--muted);
 }
 .tiny-label {
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   color: var(--muted);
   letter-spacing: 1px;
 }
@@ -740,16 +741,16 @@ h1 > span {
   color: var(--blue);
 }
 .catalog-card > strong {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   font-weight: 550;
 }
 .catalog-card > small {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
   margin-top: 4px;
 }
 .count-pill {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   background: var(--surface-soft);
   padding: 3px 6px;
   border-radius: 5px;
@@ -787,7 +788,7 @@ h1 > span {
   min-width: 0;
 }
 .furniture-row strong {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -795,7 +796,7 @@ h1 > span {
   max-width: 145px;
 }
 .furniture-row small {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
 }
 .furniture-row > svg {
@@ -803,7 +804,7 @@ h1 > span {
   color: var(--muted);
 }
 .empty-inline {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   color: var(--muted);
   line-height: 1.8;
   padding: 12px 0;
@@ -840,11 +841,11 @@ h1 > span {
   gap: 4px;
 }
 .canvas-title strong {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   font-weight: 600;
 }
 .canvas-title > div > span {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
 }
 .canvas-tools {
@@ -862,7 +863,7 @@ h1 > span {
   padding: 3px;
 }
 .view-tabs button {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   padding: 6px 10px;
 }
 .export-wrapper {
@@ -890,7 +891,7 @@ h1 > span {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   color: var(--muted);
   letter-spacing: 1.4px;
   font-weight: 500;
@@ -901,7 +902,7 @@ h1 > span {
   height: 4px;
 }
 .scale-label {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
 }
 .plan-viewport {
@@ -968,7 +969,7 @@ h1 > span {
 }
 .selection-actions > span {
   padding: 0 9px;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--blue);
   border-right: 1px solid var(--border);
   margin-right: 2px;
@@ -1005,7 +1006,7 @@ h1 > span {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
 }
 .blue-dot,
@@ -1051,7 +1052,7 @@ h1 > span {
   margin: 0 3px;
 }
 .zoom-value {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   min-width: 33px;
@@ -1070,7 +1071,7 @@ h1 > span {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
 }
 .canvas-status > span > svg {
@@ -1110,7 +1111,7 @@ h1 > span {
   padding: 10px;
   border-radius: 5px;
   text-align: left;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   color: var(--blue);
 }
 .dropdown > button:hover {
@@ -1149,20 +1150,20 @@ h1 > span {
 }
 .space-ring strong {
   font-family: Manrope, sans-serif;
-  font-size: 35px;
+  font-size: calc(35px * var(--text-scale));
   letter-spacing: -1.5px;
   font-weight: 650;
   line-height: 1.1;
 }
 .space-ring strong > small {
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
   color: var(--blue);
   letter-spacing: 0;
   margin-left: 2px;
   font-weight: 500;
 }
 .space-ring > div > span {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
 }
 .space-stats {
@@ -1174,7 +1175,7 @@ h1 > span {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
 }
 .space-stats > div > span {
   display: flex;
@@ -1183,7 +1184,7 @@ h1 > span {
   color: var(--muted);
 }
 .space-stats strong {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   font-weight: 600;
   color: var(--blue);
 }
@@ -1204,12 +1205,12 @@ h1 > span {
   gap: 4px;
 }
 .plan-health strong {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   font-weight: 550;
   color: var(--success);
 }
 .plan-health span {
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   color: var(--success);
   line-height: 1.5;
 }
@@ -1233,7 +1234,7 @@ h1 > span {
   overflow: auto;
 }
 .issue-list > button {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   line-height: 1.6;
   color: var(--warning);
   display: flex;
@@ -1265,12 +1266,12 @@ h1 > span {
   place-items: center;
 }
 .note-card strong {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--blue);
   font-weight: 500;
 }
 .note-card p {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   line-height: 1.8;
   color: var(--muted);
   margin-top: 5px;
@@ -1282,7 +1283,7 @@ h1 > span {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
   margin: 15px 0;
 }
@@ -1293,7 +1294,7 @@ h1 > span {
   padding: 10px 11px;
   background: var(--surface);
   color: var(--blue);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   width: 100%;
   min-height: 39px;
 }
@@ -1310,7 +1311,7 @@ h1 > span {
   margin-top: 14px;
 }
 .inspector-actions .button {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   min-height: 34px;
   padding: 8px 12px;
 }
@@ -1327,7 +1328,7 @@ h1 > span {
 }
 .layouts-heading h2 {
   font-family: Manrope, 'Segoe UI', sans-serif;
-  font-size: 22px;
+  font-size: calc(22px * var(--text-scale));
   letter-spacing: -0.7px;
   font-weight: 650;
   margin-top: 7px;
@@ -1336,14 +1337,14 @@ h1 > span {
   color: var(--blue);
 }
 .layouts-heading p {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
   margin-top: 7px;
 }
 .generate-button {
   padding: 12px 17px;
   min-height: 43px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
 }
 .generate-button > svg:last-child {
   margin-left: 12px;
@@ -1359,12 +1360,12 @@ h1 > span {
   min-height: 109px;
 }
 .layout-empty > div:nth-child(2) > strong {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   font-weight: 500;
   color: var(--blue);
 }
 .layout-empty p {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
   margin-top: 7px;
   line-height: 1.7;
@@ -1419,7 +1420,7 @@ h1 > span {
   border: 1px solid var(--border);
   color: var(--success);
   border-radius: 4px;
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale));
   padding: 4px 6px;
 }
 .layout-tag.tag-warning {
@@ -1434,17 +1435,17 @@ h1 > span {
   border-top: 1px solid var(--border);
 }
 .option-number {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   color: var(--muted);
   letter-spacing: 0.5px;
 }
 .layout-card-body strong {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   font-weight: 600;
   color: var(--blue);
 }
 .layout-card-body p {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
   margin-top: 5px;
 }
@@ -1464,11 +1465,12 @@ h1 > span {
 }
 .app-footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 15px;
   padding: 27px 0 25px;
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--muted);
 }
 .app-footer > span:first-child {
@@ -1487,7 +1489,7 @@ h1 > span {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
   color: var(--blue);
 }
 .app-footer > button:hover {
@@ -1512,6 +1514,14 @@ h1 > span {
 .modal-wide {
   max-width: 690px;
 }
+.terms-content { font-size: calc(13px * var(--text-scale)); line-height: 1.65; color: var(--ink); }
+.terms-content h3 { margin: 20px 0 6px; font-size: calc(14px * var(--text-scale)); color: var(--ink); }
+.terms-content p { margin: 6px 0; }
+.terms-content a, .ai-caption a { color: var(--blue); text-decoration: underline; }
+.setup-privacy-notice { margin: 16px 0; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: calc(12px * var(--text-scale)); line-height: 1.6; }
+.setup-privacy-notice strong { color: var(--ink); }
+.setup-privacy-notice p { margin: 6px 0; color: var(--ink); }
+.setup-privacy-notice button { color: var(--blue); text-decoration: underline; }
 .modal-heading {
   display: flex;
   align-items: center;
@@ -1520,12 +1530,12 @@ h1 > span {
 }
 .modal h2 {
   font-family: Manrope, sans-serif;
-  font-size: 21px;
+  font-size: calc(21px * var(--text-scale));
   letter-spacing: -0.65px;
   font-weight: 650;
 }
 .modal-description {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   line-height: 1.9;
   color: var(--muted);
   margin: 12px 0 18px;
@@ -1549,12 +1559,12 @@ h1 > span {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale));
   color: var(--muted);
 }
 .modal-summary strong {
   font-family: Manrope, sans-serif;
-  font-size: 23px;
+  font-size: calc(23px * var(--text-scale));
   color: var(--blue);
 }
 .modal-actions {
@@ -1572,12 +1582,12 @@ h1 > span {
   margin-bottom: 17px;
 }
 .empty-saved h3 {
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
   font-weight: 500;
   color: var(--blue);
 }
 .empty-saved p {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   color: var(--muted);
   margin: 10px 0 20px;
 }
@@ -1610,13 +1620,13 @@ h1 > span {
   background: var(--surface-soft);
 }
 .saved-open > strong {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   color: var(--blue);
   max-width: calc(100% - 30px);
   overflow-wrap: anywhere;
 }
 .saved-open > span {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--muted);
 }
 .saved-card > .icon-button {
@@ -1646,12 +1656,12 @@ h1 > span {
   margin-bottom: 15px;
 }
 .help-steps h3 {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   font-weight: 600;
   color: var(--blue);
 }
 .help-steps p {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   line-height: 1.9;
   color: var(--muted);
   margin-top: 9px;
@@ -1668,7 +1678,7 @@ h1 > span {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   color: var(--blue);
 }
 .keyboard-help kbd {
@@ -1679,7 +1689,7 @@ h1 > span {
   box-shadow: 0 1px 0 #e0e6f0;
   font-family: inherit;
   color: var(--blue);
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale));
 }
 .help-note {
   display: flex;
@@ -1691,7 +1701,7 @@ h1 > span {
   color: var(--warning);
 }
 .help-note p {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale));
   line-height: 1.9;
   color: var(--warning);
 }
@@ -1717,7 +1727,7 @@ h1 > span {
   color: var(--blue);
 }
 .toast > span {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   line-height: 1.6;
 }
 .toast > button {
@@ -1816,7 +1826,7 @@ h1 > span {
     gap: 7px;
   }
   .canvas-title strong {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .canvas-topline {
     padding-left: 17px;
@@ -1824,10 +1834,10 @@ h1 > span {
   }
   .canvas-status {
     padding: 12px;
-    font-size: 8px;
+    font-size: calc(8px * var(--text-scale));
   }
   .canvas-status > span {
-    font-size: 8px;
+    font-size: calc(8px * var(--text-scale));
   }
 }
 @media (max-width: 1050px) {
@@ -1856,7 +1866,7 @@ h1 > span {
     grid-row: 3/5;
   }
   .space-ring strong {
-    font-size: 27px;
+    font-size: calc(27px * var(--text-scale));
   }
   .space-stats {
     grid-column: 2;
@@ -1887,22 +1897,22 @@ h1 > span {
     gap: 18px;
   }
   .main-nav > button {
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale));
   }
   .header-actions .sample-button {
     display: none;
   }
   h1 {
-    font-size: 33px;
+    font-size: calc(33px * var(--text-scale));
   }
   .canvas-controls .icon-button {
     width: 27px;
   }
   .canvas-status > span {
-    font-size: 9px;
+    font-size: calc(9px * var(--text-scale));
   }
   .canvas-title strong {
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale));
   }
   .insights .space-ring {
     grid-row: auto;
@@ -1911,7 +1921,7 @@ h1 > span {
     padding: 21px;
   }
   .layout-empty > div:nth-child(2) > strong {
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale));
   }
 }
 @media (max-width: 760px) {
@@ -1921,7 +1931,7 @@ h1 > span {
     gap: 10px;
   }
   .brand {
-    font-size: 23px;
+    font-size: calc(23px * var(--text-scale));
   }
   .brand-mark {
     width: 33px;
@@ -1940,7 +1950,7 @@ h1 > span {
     display: none;
   }
   .main-nav > button {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .main-nav > button:last-child {
     display: none;
@@ -1948,7 +1958,7 @@ h1 > span {
   .header-actions .button {
     min-height: 34px;
     padding: 8px 11px;
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .app-shell {
     padding: 0 18px;
@@ -1961,15 +1971,15 @@ h1 > span {
     display: none;
   }
   .breadcrumb {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
     margin-bottom: 10px;
   }
   h1 {
-    font-size: 30px;
+    font-size: calc(30px * var(--text-scale));
     letter-spacing: -1px;
   }
   .intro p {
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale));
   }
   .workspace {
     grid-template-columns: 1fr;
@@ -2077,7 +2087,7 @@ h1 > span {
     height: 60px;
   }
   .catalog-card > strong {
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale));
   }
   .furniture-list {
     display: grid;
@@ -2098,7 +2108,7 @@ h1 > span {
     margin: 15px auto;
   }
   .space-ring strong {
-    font-size: 33px;
+    font-size: calc(33px * var(--text-scale));
   }
   .space-stats {
     margin: 0;
@@ -2118,7 +2128,7 @@ h1 > span {
     gap: 16px;
   }
   .layouts-heading h2 {
-    font-size: 23px;
+    font-size: calc(23px * var(--text-scale));
   }
   .generate-button {
     width: 100%;
@@ -2135,7 +2145,7 @@ h1 > span {
     gap: 16px;
   }
   .layout-empty p {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .layout-options {
     gap: 11px;
@@ -2152,7 +2162,7 @@ h1 > span {
     display: none;
   }
   .layout-card-body strong {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .layout-card-body p {
     display: none;
@@ -2163,7 +2173,7 @@ h1 > span {
     flex-shrink: 0;
   }
   .layout-tag {
-    font-size: 6px;
+    font-size: calc(6px * var(--text-scale));
     padding: 3px;
     top: 6px;
     right: 6px;
@@ -2182,7 +2192,7 @@ h1 > span {
     margin-left: 4px;
   }
   .text-field {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .inspector {
     padding: 18px;
@@ -2199,7 +2209,7 @@ h1 > span {
     padding: 0 13px;
   }
   .brand {
-    font-size: 21px;
+    font-size: calc(21px * var(--text-scale));
     gap: 7px;
   }
   .main-nav {
@@ -2207,17 +2217,17 @@ h1 > span {
     gap: 0;
   }
   .main-nav > button {
-    font-size: 9px;
+    font-size: calc(9px * var(--text-scale));
   }
   .nav-count {
     min-width: 15px;
     height: 16px;
-    font-size: 8px;
+    font-size: calc(8px * var(--text-scale));
   }
   .header-actions .button {
     padding: 8px;
     gap: 6px;
-    font-size: 9px;
+    font-size: calc(9px * var(--text-scale));
   }
   .app-shell {
     padding: 0 12px;
@@ -2226,7 +2236,7 @@ h1 > span {
     height: 420px;
   }
   .canvas-title > div > strong {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .canvas-toolbar {
     padding: 12px 10px;
@@ -2260,7 +2270,7 @@ h1 > span {
     gap: 6px;
   }
   .canvas-legend > span {
-    font-size: 8px;
+    font-size: calc(8px * var(--text-scale));
     gap: 4px;
   }
   .canvas-controls .icon-button {
@@ -2269,7 +2279,7 @@ h1 > span {
   }
   .zoom-value {
     min-width: 29px;
-    font-size: 8px;
+    font-size: calc(8px * var(--text-scale));
   }
   .control-divider {
     margin: 0 2px;
@@ -2279,7 +2289,7 @@ h1 > span {
     padding-right: 10px;
   }
   .canvas-status > span {
-    font-size: 8px;
+    font-size: calc(8px * var(--text-scale));
   }
   .right-panel {
     gap: 10px;
@@ -2288,10 +2298,10 @@ h1 > span {
     padding: 16px 12px;
   }
   .section-label h2 {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-scale));
   }
   .small-muted {
-    font-size: 9px;
+    font-size: calc(9px * var(--text-scale));
   }
   .room-settings {
     gap: 0 15px;
@@ -2333,7 +2343,7 @@ h1 > span {
     grid-template-columns: 1fr;
   }
   .layouts-heading h2 {
-    font-size: 21px;
+    font-size: calc(21px * var(--text-scale));
   }
 }
 .zoom-value {
@@ -2418,3 +2428,14 @@ h1 > span {
     width: 100% !important;
   }
 }
+.chair-omissions {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #c89b5466;
+  border-radius: 10px;
+  background: #c89b5410;
+  font-size: calc(12px * var(--text-scale));
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.chair-omissions p { margin: 5px 0 0; }

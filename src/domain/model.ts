@@ -34,8 +34,14 @@ export interface Furniture {
   rotated: boolean;
   // Older files have only rotated. New edits also store the full direction.
   rotation?: Rotation;
+  wallMounted?: boolean;
   owner: Owner;
 }
+
+// The standalone television catalog entry is always wall-mounted. The optional
+// saved flag remains readable for older files; the TV stand is a separate item.
+export const isWallMounted = (item: Furniture) => item.kind === 'television';
+export const occupiesFloor = (item: Furniture) => item.kind !== 'rug' && !isWallMounted(item);
 export interface Roommate {
   name: string;
   daylight: boolean;
@@ -46,6 +52,7 @@ export interface Project {
   name: string;
   room: Room;
   furniture: Furniture[];
+  omittedChairs?: Furniture[];
   // Optional so previously saved roommate plans can still be opened.
   roommates?: [Roommate, Roommate];
 }
@@ -74,9 +81,9 @@ export const catalog: CatalogItem[] = [
   { kind: 'bunk-bed', name: 'Bunk bed', width: 100, depth: 210, description: '100 × 210 cm', hint: 'Two beds, one above the other, with a ladder.' },
   { kind: 'sofa', name: 'Sofa', width: 200, depth: 90, description: '200 × 90 cm' },
   { kind: 'armchair', name: 'Sofa chair', width: 85, depth: 85, description: '85 × 85 cm', hint: 'A soft sofa seat for one person.' },
-  { kind: 'chair', name: 'Chair', width: 50, depth: 55, description: '50 × 55 cm' },
+  { kind: 'chair', name: 'Chair', width: 45, depth: 45, description: '45 × 45 cm' },
   { kind: 'office-chair', name: 'Office chair', width: 65, depth: 65, description: '65 × 65 cm', hint: 'A desk chair with a backrest and wheels.' },
-  { kind: 'television', name: 'TV', width: 100, depth: 25, description: '100 × 25 cm', hint: 'A television on its own feet.' },
+  { kind: 'television', name: 'Wall-mounted TV', width: 100, depth: 25, description: '100 × 25 cm', hint: 'A television fixed to the wall. No floor stand.' },
   { kind: 'nightstand', name: 'Bedside table', width: 45, depth: 40, description: '45 × 40 cm', hint: 'A small table next to your bed.' },
   { kind: 'dresser', name: 'Drawers', width: 100, depth: 50, description: '100 × 50 cm', hint: 'A low chest of drawers for clothes.' },
   { kind: 'cabinet', name: 'Storage cabinet', width: 80, depth: 45, description: '80 × 45 cm', hint: 'A cupboard with doors for storing things.' },

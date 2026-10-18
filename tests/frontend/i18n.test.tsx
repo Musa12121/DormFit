@@ -82,7 +82,7 @@ describe('website languages', () => {
   it('keeps a mixed-language note unchanged when the interface changes', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Next: furniture' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Create an AI layout using my notes' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Create an AI layout' }));
     const note = 'Растение у окна, und das Bett weit weg von der Tür.';
     fireEvent.change(screen.getByLabelText('Your room preferences'), { target: { value: note } });
     switchTo('tr');
@@ -96,7 +96,7 @@ describe('website languages', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Next: furniture' }));
     fireEvent.change(screen.getByLabelText('Plant count', { exact: true }), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Create an AI layout using my notes' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Create an AI layout' }));
     fireEvent.change(screen.getByLabelText('Your room preferences'), { target: { value: 'Растение у окна.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Show layouts' }));
     expect(screen.getByRole('dialog')).toBeVisible();

@@ -60,7 +60,7 @@ try {
   await page.getByRole('button', { name: 'Next: furniture' }).click();
   await page.getByLabel('Bed count', { exact: true }).fill('1');
   await page.getByLabel('Plant count', { exact: true }).fill('1');
-  await page.getByRole('checkbox', { name: 'Create an AI layout using my notes' }).check();
+  await page.getByRole('checkbox', { name: 'Create an AI layout' }).check();
   await page.getByLabel('Your room preferences').fill('Put the plant near Window 1.');
   await page.getByRole('button', { name: 'Show layouts', exact: true }).click();
   await page.getByLabel('Condition 1 target').waitFor();

@@ -43,8 +43,12 @@ export function isProject(value: unknown): value is Project {
   )
     return false;
   if (!Array.isArray(p.furniture) || p.furniture.length > 30) return false;
+  if (p.omittedChairs !== undefined && (!Array.isArray(p.omittedChairs)
+    || p.omittedChairs.some(item => !item || !['chair', 'office-chair'].includes(item.kind)))) return false;
+  const all = [...p.furniture, ...(p.omittedChairs ?? [])];
+  if (all.length > 30) return false;
   const ids = new Set<string>();
-  return p.furniture.every((f) => {
+  return all.every((f) => {
     if (!f || !shortText(f.id) || ids.has(f.id) || getOpenings(p.room).some((opening) => opening.id === f.id)) return false;
     ids.add(f.id);
     return (
@@ -56,6 +60,7 @@ export function isProject(value: unknown): value is Project {
       number(f.x, -1000, MAX_ROOM_CM + 1000) &&
       number(f.y, -1000, MAX_ROOM_CM + 1000) &&
       typeof f.rotated === 'boolean' &&
+      (f.wallMounted === undefined || (f.kind === 'television' && typeof f.wallMounted === 'boolean')) &&
       (f.rotation === undefined || (rotations.includes(f.rotation) && f.rotated === isSideways(f)))
     );
   });

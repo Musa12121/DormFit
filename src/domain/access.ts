@@ -1,7 +1,9 @@
 import type { Project } from './model.ts';
+import { occupiesFloor } from './model.ts';
 import { footprint } from './geometry.ts';
 import { getOpenings } from './openings.ts';
 import { rotationOf } from './rotation.ts';
+import { facesTable, isChair } from './usability.ts';
 
 export const WALKWAY_WIDTH = 60;
 
@@ -9,7 +11,7 @@ export const WALKWAY_WIDTH = 60;
 // from obstacle edges, so large rooms need no huge grid or arbitrary metre cap.
 export function inaccessibleFurniture(project: Pick<Project, 'room' | 'furniture'>): string[] {
   const doors = getOpenings(project.room).filter(opening => opening.kind === 'door');
-  const solid = project.furniture.filter(item => item.kind !== 'rug');
+  const solid = project.furniture.filter(occupiesFloor);
   if (!doors.length || !solid.length) return [];
   const radius = WALKWAY_WIDTH / 2;
   const { width, depth } = project.room;
@@ -70,6 +72,13 @@ export function inaccessibleFurniture(project: Pick<Project, 'room' | 'furniture
       default: return y >= rect.y + rect.depth + radius - 0.001 && x >= rect.x && x <= rect.x + rect.width;
     }
   })).map(item => item.id);
+  // A seated user reaches the table through its chair. Requiring a separate
+  // 60 cm route to the tabletop rejects a properly occupied dining table.
+  const unreachable = blocked.filter(id => {
+    const table = solid.find(item => item.id === id)!;
+    if (!['dining-table', 'desk', 'vanity'].includes(table.kind)) return true;
+    return !solid.some(chair => isChair(chair) && !blocked.includes(chair.id) && facesTable(chair, table));
+  });
   // A disconnected second doorway is also a blocked entrance.
-  return starts.some(start => !reached[indexOf(start)]) ? solid.map(item => item.id) : blocked;
+  return starts.some(start => !reached[indexOf(start)]) ? solid.map(item => item.id) : unreachable;
 }

@@ -17,7 +17,7 @@ for (const entry of catalog) {
       assert.equal(layout.issueCount, 0);
       assert.equal(layout.project.furniture.length, 2);
       assert.ok(isProject(layout.project));
-      const plan = { positions: layout.project.furniture.map(({ id, x, y, rotated }) => ({ id, x, y, rotated })),
+      const plan = { positions: layout.project.furniture.map(({ id, x, y, rotated, rotation }) => ({ id, x, y, rotated, rotation })),
         requirements: [], unmetRequests: [], explanation: 'Placed both items in the room.', tips: [] };
       assert.equal(checkAiPlan(plan, source).ok, true);
     }

@@ -9,6 +9,7 @@ export interface FurnitureRequest {
   count: number;
   width: number;
   depth: number;
+  wallMounted?: boolean;
 }
 
 export function emptyProject(): Project {
@@ -30,6 +31,7 @@ export function getFurnitureRequests(project: Project): FurnitureRequest[] {
       count: matching.length,
       width: matching[0]?.width ?? entry.width,
       depth: matching[0]?.depth ?? entry.depth,
+      ...(entry.kind === 'television' ? { wallMounted: true } : {}),
     };
   });
 }
@@ -48,6 +50,7 @@ export function createProject(room: Room, requests: FurnitureRequest[]): Project
       !Number.isInteger(request.count) ||
       request.count < 0 ||
       request.count > MAX_PER_KIND
+      || (request.wallMounted !== undefined && (request.kind !== 'television' || typeof request.wallMounted !== 'boolean'))
     ) {
       throw new Error('Invalid furniture quantity.');
     }
@@ -72,6 +75,7 @@ export function createProject(room: Room, requests: FurnitureRequest[]): Project
         x: 10,
         y: 10,
         rotated: false,
+        ...(request.kind === 'television' ? { wallMounted: true } : {}),
         owner: isBed(request.kind) ? 'a' : request.kind === 'desk' ? 'b' : 'shared',
       });
     }

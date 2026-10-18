@@ -39,7 +39,7 @@ await page.route('**/api/interpret-preferences', () => assert.fail('An empty not
 const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('dormfit.workspace.v1')));
 const begin = async () => {
   await page.getByRole('button', { name: 'Next: furniture', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Create an AI layout using my notes' }).check();
+  await page.getByRole('checkbox', { name: 'Create an AI layout' }).check();
   await page.getByRole('button', { name: 'Show layouts', exact: true }).click();
 };
 try {

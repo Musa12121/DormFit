@@ -148,7 +148,7 @@ export function FurnitureShape({ item, mini = false }: { item: Furniture; mini?:
               x={w / 2}
               y={h * 0.65}
               textAnchor="middle"
-              fontSize="8"
+              fontSize={8.48}
               fill={c.dark}
               fontWeight="600"
             >
@@ -160,18 +160,18 @@ export function FurnitureShape({ item, mini = false }: { item: Furniture; mini?:
     );
   if (item.kind === 'desk')
     return (
-      <g>
+      <g data-shape="desk">
         <rect
           x="0"
           y="0"
           width={w}
-          height={h * 0.73}
+          height={h}
           rx="4"
           fill="#e7d3b5"
           stroke="#bfa17d"
           strokeWidth="1.1"
         />
-        <rect x="3" y="3" width={w - 6} height={h * 0.73 - 6} rx="2" fill="#eee0cc" />
+        <rect x="3" y="3" width={w - 6} height={h - 6} rx="2" fill="#eee0cc" />
         <rect
           x={w * 0.35}
           y={h * 0.1}
@@ -183,12 +183,12 @@ export function FurnitureShape({ item, mini = false }: { item: Furniture; mini?:
           strokeWidth=".8"
         />
         <rect x={w * 0.37} y={h * 0.12} width={w * 0.26} height={h * 0.22} rx="1" fill="#b8c9d7" />
-        <path
-          d={`M${w * 0.31} ${h * 0.43}h${w * 0.38}l-4 -4h-${w * 0.31}z`}
-          fill="#c2c7cb"
-          stroke="#9ba3aa"
-          strokeWidth=".7"
-        />
+        <g data-furniture-part="keyboard">
+          <rect x={w * .3} y={h * .64} width={w * .4} height={h * .16} rx="1.5"
+            fill="#c2c7cb" stroke="#9ba3aa" strokeWidth=".7" />
+          {[.68, .72, .76].map(row => <path key={row} d={`M${w * .33} ${h * row}h${w * .34}`} stroke="#8999a6" strokeWidth=".6" />)}
+          <ellipse cx={w * .8} cy={h * .72} rx="3" ry="4" fill="#c2c7cb" stroke="#9ba3aa" strokeWidth=".6" />
+        </g>
         <rect
           x={w * 0.11}
           y={h * 0.17}
@@ -201,17 +201,6 @@ export function FurnitureShape({ item, mini = false }: { item: Furniture; mini?:
           transform={`rotate(-9 ${w * 0.18} ${h * 0.33})`}
         />
         <circle cx={w * 0.85} cy={h * 0.28} r="5" fill="#f9f8f3" stroke="#bca58b" />
-        <rect
-          x={w * 0.35}
-          y={h * 0.73}
-          width={w * 0.3}
-          height={h * 0.25}
-          rx="6"
-          fill={c.fill}
-          stroke={c.stroke}
-          strokeWidth="1"
-        />
-        <path d={`M${w * 0.38} ${h * 0.9}h${w * 0.24}`} stroke={c.stroke} />
       </g>
     );
   if (item.kind === 'shelf')

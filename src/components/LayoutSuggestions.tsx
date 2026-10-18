@@ -5,6 +5,7 @@ import type { AiOptions, AiStatus } from '../domain/ai';
 import { requirementLabel } from '../domain/ai';
 import AiControls from './AiControls';
 import PlanCanvas from './PlanCanvas';
+import ChairOmissions from './ChairOmissions';
 
 interface Props {
   layouts: LayoutOption[];
@@ -49,8 +50,9 @@ export default function LayoutSuggestions({
         {!isAi && <span className="option-number">0{index + 1}</span>}
         <div><strong>{t(option.name)}</strong>
           <span className="ai-recommended">{t(isAi ? <><Sparkles size={13} />{t("Gemini layout")}</> : 'Regular layout · notes not applied')}</span>
-          {isAi && <p className="ai-card-purpose">{t(aiOptions.prompt.trim() ? 'Uses the placement conditions you confirmed.' : 'Personalised positions based on your room and furniture.')}{t(" Checked for room boundaries, furniture overlaps and door clearance.")}</p>}
+          {isAi && <p className="ai-card-purpose">{t(aiOptions.prompt.trim() ? 'Uses the placement conditions you confirmed.' : 'Personalised positions based on your room and furniture.')}{t(" Checked for furniture spacing, opening clearance, TV viewing space and walking routes.")}</p>}
           <p>{t(option.description)}</p>
+          <ChairOmissions project={option.project} />
         </div>
         <span className={`layout-radio ${activeId === option.id ? 'checked' : ''}`}>{activeId === option.id && <Check size={12} />}</span>
       </div>
@@ -85,7 +87,7 @@ export default function LayoutSuggestions({
           <div>
             <strong>
               {t(aiStatus.kind === 'loading'
-                ? 'Gemini is creating a layout using your notes…'
+                ? (aiOptions.prompt.trim() ? 'Gemini is creating a layout using your notes…' : 'Gemini is creating a layout for your room…')
                 : aiStatus.kind === 'success'
                   ? 'Gemini placed your furniture'
                   : 'AI layout failed — showing regular layouts')}
@@ -129,7 +131,7 @@ export default function LayoutSuggestions({
         </div>
       )}
       {layouts.length > 0 && !hasValidLayout && (
-        <p className="layout-warning" role="alert">{t("No layout could fit all selected furniture without overlaps. Change the quantities or sizes, or adjust the layout yourself.")}</p>
+        <p className="layout-warning" role="alert">{t("No layout could fit all selected furniture without overlaps and with enough space between pieces. Change the quantities or sizes, or adjust the layout yourself.")}</p>
       )}
       {layouts.length > 0 ? (
         <>
@@ -139,6 +141,7 @@ export default function LayoutSuggestions({
           </section>}
           {regularLayouts.length > 0 && <section className="algorithm-layout-section" aria-label={t("Algorithm layouts")}>
             <div className="layout-group-heading"><div><h3>{t("Algorithm layouts")}</h3><p>{t("Calculated locally using placement rules. These options do not use your written notes.")}</p></div></div>
+            {regularLayouts.length < 3 && <p className="ai-selection-note">{t("The search found fewer than three distinct arrangements.")}</p>}
             <div className="layout-options">{regularLayouts.map(layoutCard)}</div>
           </section>}
         </>

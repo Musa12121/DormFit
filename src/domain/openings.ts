@@ -1,4 +1,4 @@
-import type { Room, RoomOpening, Wall } from './model.ts';
+import type { Furniture, Room, RoomOpening, Wall } from './model.ts';
 
 export const MAX_OPENINGS = 12;
 export const walls: Wall[] = ['top', 'right', 'bottom', 'left'];
@@ -50,6 +50,21 @@ export function entranceZones(room: Room) {
     return { x: swing.x - (opening.wall === 'right' ? extra : 0),
       y: swing.y - (opening.wall === 'bottom' ? extra : 0),
       width: swing.width + (horizontal ? 0 : extra), depth: swing.depth + (horizontal ? extra : 0) };
+  });
+}
+
+export const FLOOR_LAMP_DOOR_BUFFER = 20;
+export const TV_DOOR_BUFFER = 20;
+
+// The measured lamp footprint includes its shade, not just its small base.
+// Leave an additional buffer around the full swing/landing for fragile lamps.
+export function furnitureEntranceZones(room: Room, item: Pick<Furniture, 'kind'>) {
+  const margin = item.kind === 'floor-lamp' ? FLOOR_LAMP_DOOR_BUFFER
+    : item.kind === 'television' || item.kind === 'tv-stand' ? TV_DOOR_BUFFER : 0;
+  return entranceZones(room).map(zone => {
+    const x = Math.max(0, zone.x - margin), y = Math.max(0, zone.y - margin);
+    return { x, y, width: Math.min(room.width, zone.x + zone.width + margin) - x,
+      depth: Math.min(room.depth, zone.y + zone.depth + margin) - y };
   });
 }
 

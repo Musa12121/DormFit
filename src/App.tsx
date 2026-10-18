@@ -46,13 +46,14 @@ import type {
   Project,
   SavedProject,
 } from './domain/model';
-import { catalog, cloneProject, defaultProject, furnitureLabels as labels } from './domain/model';
+import { catalog, cloneProject, defaultProject, furnitureLabels as labels, isWallMounted, occupiesFloor } from './domain/model';
 import { furnitureIcons as icons } from './components/furnitureIcons';
 import { createProject, emptyProject, getFurnitureRequests } from './domain/setup';
 import type { FurnitureRequest } from './domain/setup';
 import type { Room } from './domain/model';
 import RoomSetup from './components/RoomSetup';
 import LayoutSuggestions from './components/LayoutSuggestions';
+import ChairOmissions from './components/ChairOmissions';
 import {
   analyze,
   clampItem,
@@ -70,11 +71,12 @@ import PlanCanvas from './components/PlanCanvas';
 import IsoCanvas from './components/IsoCanvas';
 import NumberField from './components/NumberField';
 import Modal from './components/Modal';
+import TermsNotice from './components/TermsNotice';
 import { useFullscreen } from './components/useFullscreen';
 import { useTheme } from './components/useTheme';
 import { MAX_ROOM_METRES } from './domain/limits';
 import { axisPositions } from './domain/positions';
-import { entranceZones, fitOpenings, openingsProblem } from './domain/openings';
+import { furnitureEntranceZones, fitOpenings, openingsProblem } from './domain/openings';
 import { turnFurniture, isSideways, rotationOf } from './domain/rotation';
 import OpeningEditor from './components/OpeningEditor';
 import PreferenceReviewModal from './components/PreferenceReviewModal';
@@ -82,8 +84,15 @@ import { requestPreferenceReview } from './domain/requestPreferenceReview';
 import type { PreferenceReview } from './domain/ai';
 import { clearValidation, showValidation } from './components/formValidation';
 import FurnitureSearch, { matchesFurniture } from './components/FurnitureSearch';
+import { rotateWallTv, wallTvPositions } from './domain/mounting';
 
-type Dialog = 'help' | 'saved' | 'save' | 'reset' | null;
+type Dialog = 'help' | 'saved' | 'save' | 'reset' | 'terms' | null;
+type HistorySnapshot = {
+  project: Project;
+  layouts: LayoutOption[];
+  activeLayout: string | null;
+  aiStatus: AiStatus;
+};
 
 function format(n: number) {
   return n.toLocaleString(locales[getLanguage()], { maximumFractionDigits: 1 });
@@ -114,9 +123,11 @@ export default function App() {
   const [preferenceReview, setPreferenceReview] = useState<{ project: Project; prompt: string; draft: PreferenceReview; error: string } | null>(null);
   const [aiStatus, setAiStatus] = useState<AiStatus>({ kind: 'idle' });
   const [activeLayout, setActiveLayout] = useState<string | null>(null);
-  const [undoStack, setUndoStack] = useState<Project[]>([]);
-  const [redoStack, setRedoStack] = useState<Project[]>([]);
-  const dragOrigin = useRef<Project | null>(null);
+  const [undoStack, setUndoStack] = useState<HistorySnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<HistorySnapshot[]>([]);
+  const dragOrigin = useRef<HistorySnapshot | null>(null);
+  const historyView = useRef({ layouts, activeLayout, aiStatus });
+  historyView.current = { layouts, activeLayout, aiStatus };
   const [saved, setSaved] = useState<SavedProject[]>(readSaved);
   const [deleteTarget, setDeleteTarget] = useState<SavedProject | null>(null);
   const [deleteError, setDeleteError] = useState('');
@@ -160,14 +171,19 @@ export default function App() {
     setToast(message);
     toastTimer.current = setTimeout(() => setToast(''), 4500);
   }
+  function historySnapshot(): HistorySnapshot {
+    const current = historyView.current;
+    return { project: cloneProject(ref.current), layouts: current.layouts, activeLayout: current.activeLayout,
+      aiStatus: current.aiStatus.kind === 'loading' ? { kind: 'idle' } : current.aiStatus };
+  }
   function update(next: Project, record = true, keepLayouts = false) {
+    const previous = record ? historySnapshot() : null;
     if (!keepLayouts) {
       cancelGeneration();
       if (!dragOrigin.current) setAiStatus({ kind: 'idle' });
     }
     if (record) {
-      const previous = cloneProject(ref.current);
-      setUndoStack((s) => [...s.slice(-39), previous]);
+      setUndoStack((s) => [...s.slice(-39), previous!]);
       setRedoStack([]);
     }
     ref.current = next;
@@ -188,21 +204,25 @@ export default function App() {
     update(
       {
         ...ref.current,
-        furniture: ref.current.furniture.map((f) => (f.id === id
-          ? (patch.width !== undefined || patch.depth !== undefined
-            ? clampItem({ ...f, ...patch }, ref.current.room)
-            : { ...f, ...patch })
-          : f)),
+        furniture: ref.current.furniture.map((f) => {
+          if (f.id !== id) return f;
+          const next = patch.width !== undefined || patch.depth !== undefined
+            ? clampItem({ ...f, ...patch }, ref.current.room) : { ...f, ...patch };
+          if (!isWallMounted(next)) return next;
+          const positions = wallTvPositions(next, ref.current.room, ref.current.furniture);
+          return (patch.rotation !== undefined ? positions.find(position => rotationOf(position) === patch.rotation) : positions[0])
+            ?? positions[0] ?? next;
+        }),
       },
       record,
     );
   }
   function startDrag() {
     cancelGeneration();
-    dragOrigin.current = cloneProject(ref.current);
+    dragOrigin.current = historySnapshot();
   }
   function endDrag() {
-    if (dragOrigin.current && JSON.stringify(dragOrigin.current) !== JSON.stringify(ref.current)) {
+    if (dragOrigin.current && JSON.stringify(dragOrigin.current.project) !== JSON.stringify(ref.current)) {
       const before = dragOrigin.current;
       setUndoStack((s) => [...s.slice(-39), before]);
       setRedoStack([]);
@@ -216,30 +236,51 @@ export default function App() {
   function undo() {
     if (!undoStack.length) return;
     const prior = undoStack[undoStack.length - 1];
-    const current = cloneProject(ref.current);
+    const current = historySnapshot();
     setRedoStack((s) => [...s, current]);
     setUndoStack((s) => s.slice(0, -1));
-    update(cloneProject(prior), false);
+    restoreHistory(prior);
     setSelected(null);
   }
   function redo() {
     if (!redoStack.length) return;
     const next = redoStack[redoStack.length - 1];
-    const current = cloneProject(ref.current);
+    const current = historySnapshot();
     setUndoStack((s) => [...s, current]);
     setRedoStack((s) => s.slice(0, -1));
-    update(cloneProject(next), false);
+    restoreHistory(next);
     setSelected(null);
+  }
+  function restoreHistory(snapshot: HistorySnapshot) {
+    const current = historyView.current;
+    const inventory = (value: Project) => JSON.stringify([...value.furniture, ...(value.omittedChairs ?? [])]
+      .map(item => [item.id, item.kind, item.width, item.depth, item.owner, item.wallMounted]).sort());
+    const compatible = JSON.stringify(snapshot.project.room) === JSON.stringify(ref.current.room)
+      && inventory(snapshot.project) === inventory(ref.current);
+    // Suggestions remain selectable while stepping between arrangements of
+    // the same room. A geometry edit can restore its previous suggestion set.
+    const restored = compatible ? [...snapshot.layouts, ...current.layouts.filter(option =>
+      !snapshot.layouts.some(existing => existing.id === option.id))] : snapshot.layouts;
+    const active = restored.find(option => JSON.stringify(option.project.furniture) === JSON.stringify(snapshot.project.furniture)
+      && JSON.stringify(option.project.omittedChairs ?? []) === JSON.stringify(snapshot.project.omittedChairs ?? []));
+    cancelGeneration();
+    update(cloneProject(snapshot.project), false, true);
+    setLayouts(restored);
+    setActiveLayout(active?.id ?? null);
+    setAiStatus(snapshot.aiStatus.kind === 'success' ? snapshot.aiStatus
+      : active && compatible && current.aiStatus.kind === 'success' ? current.aiStatus : snapshot.aiStatus);
   }
   function rotate() {
     const current = ref.current.furniture.find((f) => f.id === selected);
     if (!current) return;
-    const rotated = clampItem(turnFurniture(current), ref.current.room);
+    const rotated = isWallMounted(current)
+      ? rotateWallTv(current, ref.current.room, ref.current.furniture)
+      : clampItem(turnFurniture(current), ref.current.room);
     patchItem(current.id, rotated);
   }
   function remove() {
     if (!selected) return;
-    update({ ...ref.current, furniture: ref.current.furniture.filter((f) => f.id !== selected) });
+    update({ ...ref.current, omittedChairs: undefined, furniture: ref.current.furniture.filter((f) => f.id !== selected) });
     setSelected(null);
   }
   function duplicate() {
@@ -247,7 +288,7 @@ export default function App() {
       notify('A room can contain up to 30 furniture items.');
       return;
     }
-    const copy = clampItem(
+    let copy = clampItem(
       {
         ...item,
         id: crypto.randomUUID(),
@@ -257,7 +298,8 @@ export default function App() {
       },
       project.room,
     );
-    update({ ...project, furniture: [...project.furniture, copy] });
+    if (isWallMounted(copy)) copy = wallTvPositions(copy, project.room, project.furniture)[0] ?? copy;
+    update({ ...project, omittedChairs: undefined, furniture: [...project.furniture, copy] });
     setSelected(copy.id);
     notify('Furniture copied. Check its placement.');
   }
@@ -276,14 +318,15 @@ export default function App() {
       y: 20,
       owner: 'shared',
       rotated: false,
+      ...(entry.kind === 'television' ? { wallMounted: true } : {}),
     };
     outer: for (const y of axisPositions(project.room.depth - added.depth - 10, [], 10)) {
       for (const x of axisPositions(project.room.width - added.width - 10, [], 10)) {
         const r = footprint({ ...added, x, y });
         if (
           entry.kind === 'rug' ||
-          (!entranceZones(project.room).some((door) => overlaps(r, door)) &&
-            !project.furniture.some((f) => f.kind !== 'rug' && overlaps(r, footprint(f))))
+          (!furnitureEntranceZones(project.room, added).some((door) => overlaps(r, door)) &&
+            !project.furniture.some((f) => occupiesFloor(f) && overlaps(r, footprint(f))))
         ) {
           added.x = x;
           added.y = y;
@@ -291,7 +334,8 @@ export default function App() {
         }
       }
     }
-    update({ ...project, furniture: [...project.furniture, added] });
+    const positioned = isWallMounted(added) ? wallTvPositions(added, project.room, project.furniture)[0] ?? added : added;
+    update({ ...project, omittedChairs: undefined, furniture: [...project.furniture, positioned] });
     setSelected(added.id);
     setView('2d');
     notify(`${entry.name} added.`);
@@ -336,7 +380,9 @@ export default function App() {
       try {
         const options = generateLayouts(input);
         const best = options.reduce((a, b) => (a.issueCount <= b.issueCount ? a : b));
-        update(cloneProject(best.project), true, true);
+        // The first generation creates the workspace. Undo starts with actual
+        // edits or layout choices, rather than returning to an empty room.
+        update(cloneProject(best.project), ref.current.furniture.length > 0, true);
         setLayouts(options);
         setActiveLayout(best.id);
         setSetupOpen(false);
@@ -1108,6 +1154,7 @@ export default function App() {
                       <h2>{t("Your furniture")}</h2>
                       <Armchair size={16} />
                     </div>
+                    <ChairOmissions project={project} />
                     <div className="inventory-overview-list">
                       {getFurnitureRequests(project)
                         .filter((request) => request.count > 0)
@@ -1143,6 +1190,7 @@ export default function App() {
           <span>
             <LayoutGrid size={14} />{t("DormFit ")}<span>{t("Small space, big possibilities.")}</span>
           </span>
+          <button onClick={() => setDialog('terms')}>{t('Terms & privacy')}</button>
           <button onClick={() => setDialog('help')}>
             <CircleHelp size={14} />{t("Help and keyboard shortcuts")}</button>
         </footer>
@@ -1173,6 +1221,7 @@ export default function App() {
         onChange={(draft) => setPreferenceReview({ ...preferenceReview, draft })}
         onClose={() => { cancelGeneration(); setPreferenceReview(null); }}
         onConfirm={() => { const pending = preferenceReview; setPreferenceReview(null); generate(pending.project, pending.draft); }} />}
+      {dialog === 'terms' && <TermsNotice onClose={() => setDialog(null)} />}
       {dialog === 'save' && (
         <Modal title={t("Name your layout")} onClose={() => setDialog(null)}>
           <p className="modal-description">{t("Open your saved layout later under “My layouts”. It is stored only in this browser.")}</p>

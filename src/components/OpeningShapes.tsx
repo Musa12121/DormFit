@@ -79,8 +79,8 @@ export default function OpeningShapes({ room, mini = false, onMove, coordinate, 
         {kind === 'door' && !mini && <text
           x={wall === 'top' || wall === 'bottom' ? offset + width / 2 : wall === 'left' ? width + 30 : room.width - width - 30}
           y={wall === 'left' || wall === 'right' ? offset + width / 2 : wall === 'top' ? width + 30 : room.depth - width - 30}
-          textAnchor="middle" fontSize="7" fill="#b97319" pointerEvents="none">{t('KEEP CLEAR')}</text>}
-        {!mini && <text x={labelX} y={labelY} textAnchor="middle" fontSize="9" fontWeight={kind === 'door' ? 800 : 600} fill={kind === 'door' ? '#b97319' : '#8999ad'}
+          textAnchor="middle" fontSize={7.42} fill="#b97319" pointerEvents="none">{t('KEEP CLEAR')}</text>}
+        {!mini && <text x={labelX} y={labelY} textAnchor="middle" fontSize={9.54} fontWeight={kind === 'door' ? 800 : 600} fill={kind === 'door' ? '#b97319' : '#8999ad'}
           transform={wall === 'left' || wall === 'right' ? `rotate(-90 ${labelX} ${labelY})` : undefined}>{t(label.toUpperCase())}</text>}
       </g>;
     })}

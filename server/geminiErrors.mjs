@@ -9,13 +9,21 @@ export class ApiError extends Error {
 
 export function planValidationError(problems) {
   const labels = {
-    overlap: 'furniture overlaps', outside: 'room boundaries',
+    overlap: 'furniture overlaps', spacing: 'furniture spacing', mount: 'TV wall mounting', outside: 'room boundaries',
     door: 'door zone', access: 'walking access', placement: 'near and away conditions',
+    operation: 'furniture opening clearance', facing: 'chair and table orientation',
+    bedside: 'bedside table placement', view: 'TV viewing clearance',
     furniture: 'furniture counts and IDs', note: 'converting the note to conditions',
     format: 'AI response format',
   };
   const checks = [...new Set(problems.map((problem) => {
     if (problem.startsWith('overlap:')) return 'overlap';
+    if (problem.startsWith('spacing:')) return 'spacing';
+    if (problem.startsWith('mount:')) return 'mount';
+    if (problem.startsWith('operation:')) return 'operation';
+    if (problem.startsWith('facing:')) return 'facing';
+    if (problem.startsWith('bedside:')) return 'bedside';
+    if (problem.startsWith('view:')) return 'view';
     if (problem.startsWith('outside:')) return 'outside';
     if (problem.startsWith('door:')) return 'door';
     if (problem.startsWith('access:')) return 'access';
@@ -33,14 +41,35 @@ export function planValidationError(problems) {
 
 // Google can echo credentials in its error message. Only match known reason codes;
 // never return or log the raw message, metadata, request headers or response body.
-export async function geminiError(response) {
+export async function geminiError(response, requestedModel) {
   let reasons = [];
   let outputFormatRejected = false;
+  let quotaScope = 'unknown';
+  let quotaWindow = 'unknown';
+  const seconds = value => {
+    if (typeof value !== 'string' || !/^\d+(?:\.\d+)?s?$/.test(value)) return undefined;
+    const number = Number(value.replace(/s$/, ''));
+    return Number.isFinite(number) && number > 0 && number <= 7 * 86_400 ? Math.ceil(number) : undefined;
+  };
+  let retryAfter = seconds(response.headers.get('retry-after'));
   try {
     const body = await response.json();
     reasons = Array.isArray(body.error?.details)
       ? body.error.details.map((detail) => detail?.reason)
       : [];
+    const details = Array.isArray(body.error?.details) ? body.error.details : [];
+    const violations = details.filter(detail => detail?.['@type'] === 'type.googleapis.com/google.rpc.QuotaFailure')
+      .flatMap(detail => Array.isArray(detail.violations) ? detail.violations : []);
+    if (violations.length) {
+      quotaScope = violations.every(violation => requestedModel && violation?.quotaDimensions?.model === requestedModel)
+        ? 'model' : violations.some(violation => !violation?.quotaDimensions?.model) ? 'project' : 'unknown';
+      if (violations.some(violation => /per.?day/i.test(String(violation?.quotaId ?? '')))) quotaWindow = 'day';
+      else if (violations.some(violation => /per.?minute/i.test(String(violation?.quotaId ?? '')))) quotaWindow = 'minute';
+    }
+    for (const detail of details) if (detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo') {
+      const delay = seconds(detail.retryDelay);
+      if (delay) retryAfter = Math.max(retryAfter ?? 0, delay);
+    }
     // Only retain this boolean classification. Never expose the original message.
     const message = typeof body.error?.message === 'string' ? body.error.message : '';
     const fields = Array.isArray(body.error?.details) ? body.error.details.flatMap((detail) =>
@@ -73,7 +102,18 @@ export async function geminiError(response) {
     case 404:
       return fail('GEMINI_MODEL_NOT_FOUND', 'The selected Gemini model is unavailable. Check the model name in your private backend settings.');
     case 429:
-      return fail('GEMINI_QUOTA', 'The Gemini request limit has been reached. Try again later.', 429);
+      { const error = fail('GEMINI_QUOTA', 'The Gemini request limit has been reached. Try again later.', 429);
+        error.quotaScope = quotaScope;
+        error.quotaWindow = quotaWindow;
+        if (retryAfter) error.retryAfter = retryAfter;
+        return error; }
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      { const error = fail('GEMINI_UNAVAILABLE', 'Gemini cannot complete this request right now.');
+        if (retryAfter) error.retryAfter = retryAfter;
+        return error; }
     default:
       return fail('GEMINI_UNAVAILABLE', 'Gemini cannot complete this request right now.');
   }

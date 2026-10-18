@@ -23,6 +23,18 @@ it('accepts a 100 metre room and passes its dimensions in centimetres', () => {
 });
 
 describe('room dimensions and furniture setup', () => {
+  it('names the wall TV clearly and includes mounting automatically without a checkbox', () => {
+    const { next, onGenerate } = setup(); next();
+    expect(screen.queryByRole('checkbox', { name: 'Wall-mounted' })).not.toBeInTheDocument();
+    change('Wall-mounted TV count', '1');
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'desk' } });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'TV' } });
+    expect(screen.queryByRole('checkbox', { name: 'Wall-mounted' })).not.toBeInTheDocument();
+    change('TV stand count', '1'); submit();
+    const requests = onGenerate.mock.calls[0][1];
+    expect(requests.find(request => request.kind === 'television')).toMatchObject({ count: 1, wallMounted: true });
+    expect(requests.find(request => request.kind === 'tv-stand')).not.toHaveProperty('wallMounted');
+  });
   it('starts with room dimensions instead of the editor', () => {
     setup();
     expect(screen.getByLabelText('Room width', { exact: true })).toHaveValue(4.2);

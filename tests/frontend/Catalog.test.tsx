@@ -12,9 +12,36 @@ import { furnitureIcons } from '../../src/components/furnitureIcons';
 import { furniture } from './fixtures';
 
 describe('expanded furniture catalog', () => {
+  it('adds a wall-mounted TV directly without a checkbox and leaves the TV stand unchanged', () => {
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Example room' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browse furniture' }));
+    fireEvent.click(container.querySelector('.catalog-television')!);
+    expect(screen.queryByRole('checkbox', { name: 'Wall-mounted' })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(CURRENT_KEY)!).furniture.at(-1).wallMounted).toBe(true);
+    expect(container.querySelector('#room-plan [data-furniture-part="wall-mount"]')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(JSON.parse(localStorage.getItem(CURRENT_KEY)!).furniture.some((item: { kind: string }) => item.kind === 'television')).toBe(false);
+    fireEvent.click(container.querySelector('.catalog-tv-stand')!);
+    expect(screen.queryByRole('checkbox', { name: 'Wall-mounted' })).not.toBeInTheDocument();
+  });
+
+  it('uses wall brackets even for older TV files with a legacy mounting flag', () => {
+    for (const wallMounted of [false, true]) {
+      const item = furniture({ kind: 'television', width: 100, depth: 25, wallMounted });
+      const views = [render(<svg><FurnitureShape item={item} /></svg>),
+        render(<IsoCanvas project={{ ...emptyProject(), furniture: [item] }} />)];
+      for (const view of views) {
+        expect(view.container.querySelector('[data-furniture-part="wall-mount"]')).toBeInTheDocument();
+        expect(view.container.querySelector('[data-furniture-part="tv-feet"]')).not.toBeInTheDocument();
+        view.unmount();
+      }
+    }
+  });
   it('uses common names and excludes the retired choices from new rooms', () => {
     const labels = catalog.map(entry => entry.name);
-    expect(labels).toEqual(expect.arrayContaining(['Office chair', 'TV', 'Fridge', 'Washing machine', 'Bedside table', 'Drawers', 'Small table', 'Storage box', 'Floor lamp']));
+    expect(labels).toEqual(expect.arrayContaining(['Office chair', 'Wall-mounted TV', 'Fridge', 'Washing machine', 'Bedside table', 'Drawers', 'Small table', 'Storage box', 'Floor lamp']));
     for (const retired of ['Ottoman', 'Vanity', 'Nightstand', 'Dresser', 'Side table', 'Clothes rack']) expect(labels).not.toContain(retired);
   });
 

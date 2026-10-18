@@ -28,10 +28,13 @@ test('asks Gemini for actual positions, keeps the key in the header and preserve
     const request = JSON.parse(options.body);
     const input = JSON.parse(request.contents[0].parts[0].text);
     assert.equal(input.furniture.length, payload.project.furniture.length);
-    assert.equal(input.localExample.positions.length, payload.project.furniture.length);
+    assert.equal(input.localExample, undefined);
+    assert.ok(input.furniture.every(item => !('x' in item) && !('y' in item)), 'Do not seed Gemini with existing coordinates');
     assert.ok(input.furniture.every((item) => item.id && item.width && item.depth));
     assert.equal(input.preference, payload.prompt);
     assert.equal(input.units, 'centimetres');
+    assert.equal(input.minimumFurnitureGap, 30);
+    assert.equal(input.preferredFurnitureGap, 60);
     assert.equal(input.name, undefined);
     assert.equal(request.generationConfig.responseFormat.text.schema.properties.positions.minItems, 3);
     assert.ok(request.generationConfig.responseFormat.text.schema.required.includes('requirements'));
@@ -59,6 +62,70 @@ test('missing key never calls Google', async () => {
   await assert.rejects(getLayoutAdvice(payload, { apiKey: '' }, () => {
     assert.fail('Google must not be called');
   }), { status: 503 });
+});
+
+test('different valid Gemini proposals keep their own coordinates for the same room', async () => {
+  const alternative = plantPlan();
+  alternative.positions[2].x = 170;
+  const results = [];
+  for (const proposal of [plantPlan(), alternative]) {
+    assert.equal(checkAiPlan(proposal, payload.project, payload.prompt).ok, true);
+    const result = await getLayoutAdvice(payload, config, async () => googleResponse(proposal));
+    assert.deepEqual(result.positions, proposal.positions);
+    results.push(result);
+  }
+  assert.notDeepEqual(results[0].positions, results[1].positions);
+});
+
+test('an unusable AI response is retried and the second proposal retains its coordinates', async () => {
+  const bad = { ...plantPlan(), positions: [] };
+  const good = plantPlan();
+  good.positions[2].x = 170;
+  let calls = 0;
+  const result = await getLayoutAdvice(payload, config, async (_url, options) => {
+    calls++;
+    const request = JSON.parse(options.body);
+    if (calls === 1) return googleResponse(bad);
+    assert.equal(request.contents.length, 3);
+    assert.ok(JSON.parse(request.contents[2].parts[0].text).validationProblems.length);
+    return googleResponse(good);
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(result.positions, good.positions);
+});
+
+test('geometry retries include measured footprints and validator explanations', async () => {
+  const bad = plantPlan();
+  bad.positions[2] = { ...bad.positions[2], x: 10, y: 110 };
+  bad.requirements.push({ itemId: 'plant-1', targetId: 'window', relation: 'away' });
+  let calls = 0;
+  const result = await getLayoutAdvice(payload, config, async (_url, options) => {
+    calls++;
+    if (calls === 1) return googleResponse(bad);
+    const request = JSON.parse(options.body);
+    const feedback = JSON.parse(request.contents.at(-1).parts[0].text);
+    assert.ok(feedback.placementDetails.some(issue => issue.type === 'overlap' && issue.message.includes('overlap')));
+    assert.deepEqual(feedback.actualFootprints.find(item => item.id === 'plant-1'),
+      { id: 'plant-1', x: 10, y: 110, width: 35, depth: 35, rotation: 0 });
+    assert.match(feedback.instruction, /viewing group/);
+    return googleResponse(plantPlan());
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(result.positions, plantPlan().positions);
+});
+
+test('small geometry repair preserves the other AI positions', async () => {
+  const proposal = plantPlan();
+  proposal.positions[2].y = -5;
+  const result = await getLayoutAdvice(payload, config, async () => googleResponse(proposal));
+  assert.equal(result.adjusted, true);
+  for (const id of ['bed-1', 'desk-1']) {
+    const before = proposal.positions.find(position => position.id === id);
+    const after = result.positions.find(position => position.id === id);
+    assert.equal(after.x, before.x);
+    assert.equal(after.y, before.y);
+  }
+  assert.equal(checkAiPlan(result, payload.project, payload.prompt).ok, true);
 });
 
 test('invalid room, empty furniture and overlong preference are rejected before Google', async () => {

@@ -105,25 +105,25 @@ test('malformed requests and status checks do not consume the AI budget', async 
   assert.equal(calls, 1);
 });
 
-test('failed upstream calls still consume the budget', async t => {
+test('non-retryable upstream failures still consume the budget', async t => {
   let calls = 0;
   const { post } = await startApp(t, async () => {
     calls++;
-    return Response.json({ error: { message: 'Unavailable' } }, { status: 503 });
+    return Response.json({ error: { message: 'Bad request' } }, { status: 400 });
   }, fakeConfig, { limits: { perMinute: 1, perDay: 100 } });
   assert.equal((await post()).status, 502);
   assert.equal((await post()).status, 429);
   assert.equal(calls, 1);
 });
 
-for (const retry of ['format compatibility', 'layout validation']) {
+for (const retry of ['format compatibility', 'layout validation', 'malformed JSON']) {
   test(`${retry} retry cannot bypass the Gemini call limit`, async t => {
     let calls = 0;
     const { post } = await startApp(t, async () => {
       calls++;
       return retry === 'format compatibility'
         ? Response.json({ error: { message: 'Unknown responseFormat' } }, { status: 400 })
-        : Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{}' }] } }] });
+        : Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: retry === 'malformed JSON' ? '{' : '{}' }] } }] });
     }, fakeConfig, { limits: { perMinute: 1, perDay: 100 } });
     const result = await post();
     assert.equal(result.status, 429);

@@ -30,7 +30,7 @@ export default function WardrobeShape({
         <path d="M5 98h90" stroke="#866445" strokeWidth="2" />
       </g>
       {!mini && <text x={width * .25} y={depth * .93} textAnchor="middle"
-        fontSize={Math.min(5, width / 12)} fontWeight="600" letterSpacing=".6" fill="#785b40"
+        fontSize={Math.min(5, width / 12) * 1.06} fontWeight="600" letterSpacing=".6" fill="#785b40"
         pointerEvents="none">{t("WARDROBE")}</text>}
     </g>
   );

@@ -54,6 +54,10 @@ describe('browser AI requests', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('secret-looking transport details')));
     await expect(request()).rejects.toThrow(/Could not reach AI/);
   });
+  it('reports the browser deadline as a timeout rather than a missing backend', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new DOMException('Deadline reached', 'TimeoutError')));
+    await expect(request()).rejects.toThrow('Gemini took too long to respond. (GEMINI_TIMEOUT)');
+  });
   it('lets cancellation propagate so late requests cannot replace manual choices', async () => {
     const controller = new AbortController(); const error = new DOMException('Aborted', 'AbortError');
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(error)); controller.abort();

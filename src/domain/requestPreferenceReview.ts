@@ -2,13 +2,14 @@ import type { Project } from './model';
 import { AI_PROTOCOL, isPreferenceReview } from './ai';
 import { getLanguage } from '../i18n';
 import type { Language } from '../i18n';
+import { AI_CLIENT_GRACE_MS, AI_REVIEW_TIMEOUT_MS } from './aiTiming';
 
 export async function requestPreferenceReview(project: Project, prompt: string, signal: AbortSignal, language: Language = getLanguage()) {
   const response = await fetch('/api/interpret-preferences', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ project, prompt, language }),
-    signal: AbortSignal.any([signal, AbortSignal.timeout(35_000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(AI_REVIEW_TIMEOUT_MS + AI_CLIENT_GRACE_MS)]),
   });
   let body: unknown;
   try { body = await response.json(); } catch { throw new Error('Could not read the preference review. Check that the backend is running.'); }

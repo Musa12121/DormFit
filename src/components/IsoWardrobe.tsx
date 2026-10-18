@@ -43,7 +43,7 @@ export default function IsoWardrobe({ item, points, projectPoint }: Props) {
       </g>
       <polygon points={points([[r.x, r.y, height], [x2, r.y, height], [x2, y2, height], [r.x, y2, height]])}
         fill="#e5c9a3" stroke="#a58059" strokeWidth="1" />
-      <text x={label[0]} y={label[1]} textAnchor="middle" fontSize="8" fontWeight="600" fill="#785b40">{t("Wardrobe")}</text>
+      <text x={label[0]} y={label[1]} textAnchor="middle" fontSize={8.48} fontWeight="600" fill="#785b40">{t("Wardrobe")}</text>
     </g>
   );
 }

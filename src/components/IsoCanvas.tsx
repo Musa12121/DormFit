@@ -1,11 +1,13 @@
 import { t } from '../i18n';
 import type { Project } from '../domain/model';
+import { isWallMounted } from '../domain/model';
 import { footprint } from '../domain/planner';
 import { colors } from './FurnitureShape';
 import IsoWardrobe from './IsoWardrobe';
 import IsoFurniture from './IsoFurniture';
 import { furniturePoint, rotationOf } from '../domain/rotation';
 import { getOpenings, openingLabel, openingSegment } from '../domain/openings';
+import { validWallMount } from '../domain/mounting';
 
 export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
   project: Project;
@@ -23,6 +25,23 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
   const width = maxX - minX + 90,
     height = maxY + 195;
   const viewBox = `${minX - 45 + (width - width / zoom) / 2} ${-140 + (height - height / zoom) / 2} ${width / zoom} ${height / zoom}`;
+  const isForeground = (opening: ReturnType<typeof getOpenings>[number]) => opening.wall === 'bottom' || opening.wall === 'right';
+  const renderOpening = (opening: ReturnType<typeof getOpenings>[number]) => {
+    const { x, y, width, depth } = openingSegment(project.room, opening);
+    const bottom = opening.kind === 'window' ? 30 : 0;
+    const knob = p(x + width * .8, y + depth * .8, 30);
+    const label = p(x + width / 2, y + depth / 2, 76);
+    const foreground = isForeground(opening);
+    return <g key={opening.id} data-opening={opening.id} data-wall={opening.wall}
+      data-depth-layer={foreground ? 'foreground' : 'background'} pointerEvents="none"
+      aria-label={t(`${openingLabel(project.room, opening)}, ${opening.wall} wall`)}>
+      <polygon points={points([[x, y, bottom], [x + width, y + depth, bottom], [x + width, y + depth, 68], [x, y, 68]])}
+        fill={opening.kind === 'window' ? '#d3e7ee' : '#edb665'}
+        fillOpacity={foreground && opening.kind === 'window' ? .35 : 1}
+        stroke={opening.kind === 'window' ? '#a1bdc8' : '#ae6617'} strokeWidth={opening.kind === 'door' ? 4 : 2} />
+      {opening.kind === 'door' && <><circle cx={knob[0]} cy={knob[1]} r="3" fill="#714112" /><text x={label[0]} y={label[1]} textAnchor="middle" fontSize={9.54} fontWeight="800" fill="#b97319">{t(openingLabel(project.room, opening).toUpperCase())}</text></>}
+    </g>;
+  };
   return (
     <svg className="iso-svg" viewBox={viewBox} role="img" aria-label={t("Isometric room view")}>
       <defs>
@@ -61,20 +80,23 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
         fill="#f0f0ec"
         stroke="#d2d5d0"
       />
-      {getOpenings(project.room).map((opening) => {
-        const segment = openingSegment(project.room, opening);
-        const { x, y, width, depth } = segment;
-        const bottom = opening.kind === 'window' ? 30 : 0;
-        const knob = p(x + width * .8, y + depth * .8, 30);
-        const label = p(x + width / 2, y + depth / 2, 76);
-        return <g key={opening.id} data-opening={opening.id} data-wall={opening.wall}
-          aria-label={t(`${openingLabel(project.room, opening)}, ${opening.wall} wall`)}>
-          <polygon
-          points={points([[x, y, bottom], [x + width, y + depth, bottom], [x + width, y + depth, 68], [x, y, 68]])}
-          fill={opening.kind === 'window' ? '#d3e7ee' : '#edb665'} stroke={opening.kind === 'window' ? '#a1bdc8' : '#ae6617'} strokeWidth={opening.kind === 'door' ? 4 : 2} />
-          {opening.kind === 'door' && <><circle cx={knob[0]} cy={knob[1]} r="3" fill="#714112" /><text x={label[0]} y={label[1]} textAnchor="middle" fontSize="9" fontWeight="800" fill="#b97319">{t(openingLabel(project.room, opening).toUpperCase())}</text></>}
+      {project.furniture.filter(item => isWallMounted(item) && validWallMount(item, project.room)
+        && [90, 180].includes(rotationOf(item))).map(item => {
+        // The front/right walls are normally cut away. Retain the section that
+        // supports a mounted TV, with a visible edge joining it to the floor.
+        const rect = footprint(item), right = rotationOf(item) === 90;
+        const start = Math.max(0, (right ? rect.y : rect.x) - 10);
+        const end = Math.min(right ? d : w, (right ? rect.y + rect.depth : rect.x + rect.width) + 10);
+        const a = right ? [w, start] : [start, d];
+        const b = right ? [w, end] : [end, d];
+        return <g key={`wall-${item.id}`} data-tv-wall={item.id} data-wall={right ? 'right' : 'bottom'}>
+          <polygon points={points([[...a, 0], [...b, 0], [...b, 80], [...a, 80]])}
+            fill={right ? '#e6e7e4' : '#f0f0ec'} stroke="#b9beb7" strokeWidth="1" />
+          <path d={`M${p(a[0], a[1]).join(' ')}L${p(b[0], b[1]).join(' ')}`}
+            stroke="#a3aaa1" strokeWidth="2" />
         </g>;
       })}
+      {getOpenings(project.room).filter(opening => !isForeground(opening)).map(renderOpening)}
       {[...project.furniture]
         .sort(
           (a, b) => Number(a.kind !== 'rug') - Number(b.kind !== 'rug') || a.x + a.y - b.x - b.y,
@@ -166,7 +188,7 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
                   x={label[0]}
                   y={label[1]}
                   textAnchor="middle"
-                  fontSize="8"
+                  fontSize={8.48}
                   fontWeight="600"
                   fill={c.dark}
                 >
@@ -176,6 +198,9 @@ export default function IsoCanvas({ project, zoom = 1, selected, onSelect }: {
             </g>
           );
         })}
+      {/* Cut-away front walls still have glazing in front of the furniture.
+          Paint these last so chair backs cannot appear outside the window. */}
+      {getOpenings(project.room).filter(isForeground).map(renderOpening)}
     </svg>
   );
 }

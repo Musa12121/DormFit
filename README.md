@@ -45,7 +45,7 @@ Use the language menu in the top bar to choose **English**, **Русский** (
 
 You can drag openings with a mouse or touch. Focus an opening with the keyboard and use arrow keys to move it, or press **R** to change its wall. Dragging snaps in 5 cm steps and avoids other openings. Doorways have an amber frame, a handle and a visible swing arc.
 
-After creating a layout, drag openings directly on the main **2D plan**. Use **Undo** to reverse a whole drag in one step. Width and offset fields are still available for exact measurements; there is no wall dropdown. Opening positions are included in saved layouts and JSON files. Older files still open with their original centred door and window.
+After creating a layout, drag openings directly on the main **2D plan**. Use **Undo** to reverse a whole drag in one step. Undo and Redo preserve layout suggestions and restore the matching selected card; undoing a furniture or room edit restores its previous suggestions too. Pending AI work is cancelled when stepping through history. Width and offset fields are still available for exact measurements; there is no wall dropdown. Opening positions are included in saved layouts and JSON files. Older files still open with their original centred door and window.
 
 You can create layouts without an AI key.
 
@@ -85,11 +85,21 @@ After confirmation, Gemini suggests furniture positions and directions. The app 
 
 For example, drawers immediately beyond the door arc can still block someone entering. The app now rejects that arrangement. It tries a local repair or asks Gemini to fix it; a plan that still fails these checks is not accepted as an AI layout. Conflicting conditions or a crowded room may prevent a valid layout.
 
-AI without a written note skips the review step. With a note, interpretation normally makes one model request; layout generation can make up to two more if a placement retry is needed. A recognised output-format rejection can cause one extra compatibility request per attempt. Other errors, including quota or key errors, do not trigger this retry.
+AI without a written note skips the review step. With a note, interpretation normally makes one model request; layout generation can make up to two more if a placement retry is needed. An output-format rejection or unreadable JSON can cause one extra JSON compatibility request per attempt. Model-specific quota failures can cause the backend to try the next configured model. Every attempt counts toward the app's shared allowance.
+
+The default model priority is **Gemini 3.8 Flash → Gemini 3.6 Flash → Gemini 3.5 Flash-Lite**. Model selection stays in the backend; it is not shown in the interface, response headers or status endpoint. These models currently offer an API free tier according to [Google's pricing](https://ai.google.dev/gemini-api/docs/pricing), but access and charges depend on your Google project's tier. This list does not enable billing or add a paid-only Pro model. It cannot guarantee free usage on a project with billing enabled.
+
+When Google identifies an exhausted quota as specific to one model, the backend remembers its cooldown and immediately tries the next model. Preference review and layout generation share that state. The stronger model becomes eligible after Google's retry delay; daily request quotas wait until midnight Pacific time, including daylight-saving changes. Unavailable models (HTTP 404) are skipped for an hour. Cooldowns are held in memory and reset when the backend restarts. Shared or unidentified Google quota limits, key/permission errors, billing errors and the app's own limits stop the request instead of cascading. If every model is exhausted, regular layouts remain available. All successful AI responses still undergo the same JSON, furniture and placement checks.
+
+The priority list is public configuration in `server/modelPolicy.mjs`; it contains no key. Existing private settings that select one of the three default models automatically use this list. A custom legacy `model` remains a single-model override. An explicit `models: ['first-model-id', 'second-model-id']` setting takes priority over that policy; `models: ['gemini-3.5-flash-lite']` pins the backend to Flash-Lite. Keep the existing `model` field when supplying `models`. The example settings file includes the priority list. Automated fallback tests use fake credentials and simulated quota responses, not the private settings file or live API calls.
 
 ### AI request limits
 
 The backend allows **10 Gemini calls in any 60 seconds** and **100 calls per UTC calendar day**. These limits are shared by all visitors and browser tabs using that backend. Reading a note, creating a layout and retrying a failed AI response all use this allowance. Failed calls count too. Invalid room details do not use it.
+
+Each model attempt has a **35-second deadline**, including reading the response body. A timed-out model is skipped for 60 seconds and the next configured model is tried through the same call limiter. Temporary Google server errors (HTTP 500, 502, 503 and 504) also try the next model; the failed model is skipped for at least 30 seconds, or longer if Google supplies a retry delay. The last eligible model gets at most one additional attempt after a one-second wait. Longer provider delays skip that retry and are returned as `Retry-After`. This also lets an explicitly pinned single model recover once, without selecting any other model. These retries use the same app-wide call allowance and remain cancellable. Ordinary network failures, credential/billing errors and user cancellation do not trigger more requests. The complete layout request, including format and placement retries, has a **95-second budget**; preference review has 50 seconds. Browser deadlines are five seconds longer so the server can return a useful error. An outage affecting every eligible model can still require trying again later.
+
+For living/dining rooms, the local planner searches whole seating concepts before fitting the dining group: wall-side, staggered, floating or perpendicular sofas, as the room permits. Every seat must see the TV, and sofas and armchairs need **60 cm of clear legroom across their full front**, including corner seats. Rugs can occupy that space; solid furniture cannot. Algorithmic plans, AI validation and AI repair share this rule. Dining tables and ordinary chairs need **60 cm edge-to-edge separation from TVs**, with 100 cm preferred when feasible. A four-chair dining set must have **two chairs on each opposite long side**, aligned with the four place settings. Head seats and three-plus-one arrangements are rejected in both algorithm and AI validation. When exactly four dining chairs are requested, they cannot be omitted to bypass this rule; the planner must reposition the group or report that it cannot fit safely. Complete groups also pass door, spacing and walking-route checks. Different screen/seating patterns take precedence over a table-only change. Other chair quantities still report seats that do not fit; tight rooms may offer fewer than three safe concepts.
 
 When the limit is reached, the app shows how many seconds to wait. Regular layouts, editing and saving still work. Google may have its own lower limits; these settings do not change Google's quota.
 
@@ -100,6 +110,12 @@ The counters live in backend memory: refreshing the page does not reset them, bu
 An accepted result appears in its own large **Your AI-designed layout** section, with a purple **DESIGNED BY GEMINI AI** banner. The three locally calculated options appear separately under **Algorithm layouts**. AI may misunderstand part of your request, so read the explanation too.
 
 **If you see “AI layout failed — showing regular layouts”, the AI layout failed. The regular layouts shown instead do not follow your written note.**
+
+### Terms and privacy notice
+
+The room setup shows a Terms & privacy reminder before the measurement inputs. The complete plain-language notice is also available from the footer in English, Russian and Turkish. Reading it does not submit data, enable AI or reset measurements. The AI controls separately explain Google's unpaid-API data use before an AI request is made.
+
+The notice describes the actual local storage, optional Google processing, possible model training/human review, approximate layouts and deletion limits. It is not a jurisdiction-specific legal sign-off. Before publishing a service for others, the operator must add their real identity and contact information and review applicable law and Google's regional and age eligibility rules. No contact details or guarantees have been invented for this prototype.
 
 ## 4. Add your Gemini API key
 
@@ -238,6 +254,8 @@ The **frontend** is what you see and use in the browser. It uses React, TypeScri
 | `server/preferencePrompt.mjs` | Instructions for turning a note into conditions |
 | `server/language.mjs` | Chooses the language Gemini should use in its replies |
 | `server/aiLimits.mjs` | Limits actual Gemini calls, including retries |
+| `server/modelPolicy.mjs` | Public priority list for automatic model selection |
+| `server/modelFallback.mjs` | Applies model-specific quota cooldowns and fallback without exposing model selection |
 | `server/loadConfig.mjs` | Uses safe defaults when private settings are missing and hides sensitive configuration errors |
 | `src/domain/limits.ts` | Shared room-size limits, used by the forms and data checks |
 | `src/domain/positions.ts` | Limits the number of positions searched in larger rooms |
@@ -245,6 +263,17 @@ The **frontend** is what you see and use in the browser. It uses React, TypeScri
 | `src/App.tsx` | Connects the main screens and actions |
 | `server` | The backend and Gemini connection |
 | `tests` | Automated tests |
+
+## Future plans
+
+These are proposed improvements for future versions. Priorities may change as the project develops.
+
+- **Room examples page:** add a separate page with example layouts for bedrooms, shared rooms and living rooms to help users find ideas for their own space.
+- **Keep selected furniture in place:** lock items and generate new arrangements around them. Support focused AI requests such as “keep the sofas here and move the dining area.”
+- **More room shapes and obstacles:** support L-shaped rooms, alcoves, columns and radiators, with their own placement restrictions.
+- **Clearer layout comparisons:** explain the tradeoffs between suggestions, such as better daylight, more walking space or easier TV viewing, and let users prioritise what matters to them.
+- **More realistic 3D previews:** use measured furniture heights, check ceiling clearance and add a movable camera to inspect the room from different angles.
+- **Import floor plan images or PDFs:** let users upload a floor plan, mark the walls and check the measurements before creating a layout. Opening saved DormFit JSON layout files is already supported.
 
 ## Current limits
 

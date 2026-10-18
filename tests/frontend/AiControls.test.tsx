@@ -14,11 +14,14 @@ describe('AI controls', () => {
   it('starts with AI off and hides the note field', () => {
     render(<Controls />);
     expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.getByRole('checkbox')).toHaveAccessibleName('Create an AI layout');
+    expect(screen.getByText('AI uses your room measurements and furniture. Adding a note is optional.')).toBeVisible();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
   it('turning AI on exposes a named note input with the saved text', async () => {
     render(<Controls />); await userEvent.click(screen.getByRole('checkbox'));
     expect(screen.getByRole('textbox', { name: 'Your room preferences' })).toHaveValue('Place the plant near the window.');
+    expect(screen.getByRole('textbox')).not.toBeRequired();
     expect(screen.getByText(/Gemini chooses furniture positions/)).toBeVisible();
   });
   it('edits the note without disabling AI', () => {

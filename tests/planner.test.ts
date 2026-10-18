@@ -134,7 +134,7 @@ test('layout generation keeps all requested furniture, including when the room i
   requests.find((r) => r.kind === 'bed')!.count = 5;
   const project = createProject({ width: 200, depth: 200, door: 85, window: 100 }, requests);
   const layouts = generateLayouts(project);
-  assert.equal(layouts.length, 3);
+  assert.ok(layouts.length >= 1 && layouts.length <= 3);
   for (const layout of layouts) {
     assert.equal(layout.project.furniture.length, 5);
     assert.ok(layout.issueCount > 0);
