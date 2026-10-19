@@ -61,14 +61,30 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
     </>;
   } else if (kind === 'shelf') {
     height = 105;
-    drawing = <>
+    const shelfLevels = [4, 36, 68, 100];
+    const books = [
+      { width: .11, height: 20, color: '#7893a8' },
+      { width: .13, height: 24, color: '#c38e70' },
+      { width: .10, height: 18, color: '#91a27e' },
+      { width: .14, height: 26, color: '#d0b278' },
+      { width: .12, height: 22, color: '#9b8294' },
+    ];
+    drawing = <g data-shelf-part="bookcase">
       {box(.02, .03, .96, .05, 0, height, '#cfb18a', '#b9956a')}
-      {box(.02, .03, .06, .94, 0, height)}{box(.92, .03, .06, .94, 0, height)}
-      {[4, 36, 68, 100].map(z => <g key={z}>
+      {box(.02, .03, .06, .94, 0, height)}
+      {box(.92, .03, .06, .94, 0, height)}
+      {shelfLevels.map((z, shelfIndex) => <g key={z}>
         {box(.04, .03, .92, .94, z, z + 4)}
-        {z < 100 && [.14, .29, .44, .63, .78].map((u, i) => <g key={u}>{box(u, .25, .1, .7, z + 4, z + 25 - i % 3 * 3, ['#8aa2b5', '#d0aa89', '#9ead8b'][i % 3])}</g>)}
+        {z < 100 && books.map((book, index) => {
+          const u = .16 + books.slice(0, index).reduce((sum, previous) => sum + previous.width, 0);
+          const bottom = z + 4;
+          return <g key={`${z}-${index}`} data-shelf-part="book-spine">
+            {frontPanel(u, bottom, book.width, book.height - (shelfIndex + index) % 3 * 2, book.color)}
+            {line(at(u + book.width * .2, 1, bottom + 3), at(u + book.width * .8, 1, bottom + 3), '#f0dfc7', .7)}
+          </g>;
+        })}
       </g>)}
-    </>;
+    </g>;
   } else if (kind === 'plant') {
     height = 46;
     const ring = (radius: number, z: number) => Array.from({ length: 24 }, (_, i) => at(.5 + Math.cos(i * Math.PI / 12) * radius, .5 + Math.sin(i * Math.PI / 12) * radius, z));
