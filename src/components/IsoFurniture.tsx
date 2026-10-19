@@ -27,6 +27,17 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
         <polygon points={points(corners)} fill={fill} stroke={outline} strokeWidth=".6" />
       </g>;
     };
+  // Unlike the general box helper, keep each face in local furniture space.
+  // This matters for open-front items such as bookshelves when they are rotated.
+  const orientedBox = (u: number, v: number, width: number, depth: number, bottom: number, top: number,
+    fill = '#e6d1b3', side = '#bb9870') => <g>
+    <polygon points={points([at(u, v, top), at(u + width, v, top), at(u + width, v + depth, top), at(u, v + depth, top)])}
+      fill={fill} stroke={outline} strokeWidth=".6" />
+    <polygon points={points([at(u, v + depth, bottom), at(u + width, v + depth, bottom), at(u + width, v + depth, top), at(u, v + depth, top)])}
+      fill={side} stroke={outline} strokeWidth=".6" />
+    <polygon points={points([at(u + width, v, bottom), at(u + width, v + depth, bottom), at(u + width, v + depth, top), at(u + width, v, top)])}
+      fill={side} stroke={outline} strokeWidth=".6" />
+  </g>;
   const line = (a: number[], b: number[], stroke = '#8a7359', strokeWidth = 2) =>
     <path d={`M${projectPoint(a[0], a[1], a[2]).join(' ')}L${projectPoint(b[0], b[1], b[2]).join(' ')}`} fill="none" stroke={stroke} strokeWidth={strokeWidth} />;
   const frontCircle = (u: number, z: number, radius: number, height: number, fill: string, stroke = outline) =>
@@ -70,11 +81,11 @@ export default function IsoFurniture({ item, points, projectPoint }: Props) {
       { width: .12, height: 22, color: '#9b8294' },
     ];
     drawing = <g data-shelf-part="bookcase">
-      {box(.02, .03, .96, .05, 0, height, '#cfb18a', '#b9956a')}
-      {box(.02, .03, .06, .94, 0, height)}
-      {box(.92, .03, .06, .94, 0, height)}
+      {orientedBox(.02, .03, .96, .05, 0, height, '#cfb18a', '#b9956a')}
+      {orientedBox(.02, .03, .06, .94, 0, height)}
+      {orientedBox(.92, .03, .06, .94, 0, height)}
       {shelfLevels.map((z, shelfIndex) => <g key={z}>
-        {box(.04, .03, .92, .94, z, z + 4)}
+        {orientedBox(.04, .03, .92, .94, z, z + 4)}
         {z < 100 && books.map((book, index) => {
           const u = .16 + books.slice(0, index).reduce((sum, previous) => sum + previous.width, 0);
           const bottom = z + 4;
