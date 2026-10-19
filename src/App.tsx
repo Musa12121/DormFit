@@ -226,8 +226,19 @@ export default function App() {
       const before = dragOrigin.current;
       setUndoStack((s) => [...s.slice(-39), before]);
       setRedoStack([]);
-      setLayouts([]);
-      setActiveLayout(null);
+      const editedLayoutId = before.activeLayout;
+      const hasAlgorithmLayout = editedLayoutId && editedLayoutId !== 'ai'
+        && before.layouts.some((layout) => layout.id === editedLayoutId);
+      if (hasAlgorithmLayout) {
+        const editedProject = cloneProject(ref.current);
+        const issueCount = analyze(editedProject).issues.length;
+        setLayouts((current) => current.filter((layout) => layout.id !== 'ai').map((layout) =>
+          layout.id === editedLayoutId ? { ...layout, project: editedProject, issueCount } : layout));
+        setActiveLayout(editedLayoutId);
+      } else {
+        setLayouts([]);
+        setActiveLayout(null);
+      }
       setAiStatus({ kind: 'idle' });
     }
     if (aiStatus.kind === 'loading') setAiStatus({ kind: 'idle' });
