@@ -39,9 +39,6 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
   const [search, setSearch] = useState('');
   const [width, setWidth] = useState(String(project.room.width / 100));
   const [length, setLength] = useState(String(project.room.depth / 100));
-  const [height, setHeight] = useState(
-    project.room.height ? String(project.room.height / 100) : '',
-  );
   const [choices, setChoices] = useState(() =>
     getFurnitureRequests(project).map((request) => ({
       ...request,
@@ -79,7 +76,6 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
       window: measuredRoom.window,
     };
     delete room.height;
-    if (height !== '') room.height = Math.round(Number(height) * 100);
     const requests = choices.map((choice) => ({
       kind: choice.kind,
       count: choice.count,
@@ -154,25 +150,9 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
                   <span>{t("m")}</span>
                 </div>
               </label>
-              <label className="setup-input optional-height">{t("Height ")}<small>{t("optional")}</small>
-                <div>
-                  <input
-                    name="height"
-                    aria-label={t("Room height")}
-                    type="number"
-                    min="1.8"
-                    max="6"
-                    step="0.01"
-                    placeholder={t("For example, 2.7")}
-                    value={height}
-                    onChange={(event) => setHeight(event.target.value)}
-                  />
-                  <span>{t("m")}</span>
-                </div>
-              </label>
             </div>
             <p className="setup-hint">
-              <Ruler size={14} />{t("Measure wall to wall. Height does not change the floor layout.")}</p>
+              <Ruler size={14} />{t("Measure the width and length from wall to wall.")}</p>
             <OpeningEditor room={measuredRoom} onChange={setOpeningRoom} />
             {openingError && <p role="alert" className="form-error">{t(openingError)}</p>}
             <div className="setup-buttons">
@@ -318,7 +298,7 @@ export default function RoomSetup({ project, busy, aiOptions, onAiOptionsChange,
             <div className="summary-room">
               <Ruler size={15} />
               <span>
-                {t(width)} × {t(length)}{t(" m")}{t(height ? ` · h ${height} m` : '')}
+                {t(width)} × {t(length)}{t(" m")}
               </span>
             </div>
             {total > MAX_FURNITURE && (

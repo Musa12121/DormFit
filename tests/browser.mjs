@@ -31,7 +31,7 @@ try {
   if (process.env.SCREENSHOT_ONLY) process.exitCode = 0;
   else {
     await check(
-      'dimensions, optional height, quantities and measured layout suggestions',
+      'room dimensions, furniture quantities and measured layout suggestions',
       async () => {
         assert.equal(
           await page.locator('.canvas-panel').count(),
@@ -40,14 +40,7 @@ try {
         );
         await page.getByLabel('Room width', { exact: true }).fill('4.8');
         await page.getByLabel('Room length', { exact: true }).fill('4');
-        await page.getByLabel('Room height', { exact: true }).fill('1');
-        await page.getByRole('button', { name: 'Next: furniture' }).click();
-        assert.equal(
-          await page.locator('.setup-room').count(),
-          1,
-          'Invalid height prevents continuing',
-        );
-        await page.getByLabel('Room height', { exact: true }).fill('2.7');
+        assert.equal(await page.getByLabel('Room height', { exact: true }).count(), 0);
         await page.getByRole('button', { name: 'Next: furniture' }).click();
         assert.equal(
           await page.getByRole('button', { name: 'Show layouts' }).isDisabled(),
@@ -67,7 +60,7 @@ try {
         );
         assert.equal(data.room.width, 480);
         assert.equal(data.room.depth, 400);
-        assert.equal(data.room.height, 270);
+        assert.equal(data.room.height, undefined);
         assert.equal(data.furniture.length, 4);
         assert.equal(data.furniture.filter((f) => f.kind === 'wardrobe').length, 2);
         assert.equal(data.furniture.find((f) => f.kind === 'bed').width, 90);
@@ -78,15 +71,11 @@ try {
       },
     );
     await check(
-      'editing quantities preserves inputs and optional height can be removed',
+      'editing quantities preserves inputs without a room-height field',
       async () => {
         await page.getByRole('button', { name: 'Change sizes and quantities', exact: true }).click();
         assert.equal(await page.getByLabel('Room width', { exact: true }).inputValue(), '4.8');
-        assert.equal(
-          await page.getByLabel('Room height', { exact: true }).inputValue(),
-          '2.7',
-        );
-        await page.getByLabel('Room height', { exact: true }).fill('');
+        assert.equal(await page.getByLabel('Room height', { exact: true }).count(), 0);
         await page.getByRole('button', { name: 'Next: furniture' }).click();
         assert.equal(await page.getByLabel('Wardrobe count', { exact: true }).inputValue(), '2');
         await page.getByLabel('Wardrobe count', { exact: true }).fill('1');

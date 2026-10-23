@@ -39,7 +39,7 @@ describe('room dimensions and furniture setup', () => {
     setup();
     expect(screen.getByLabelText('Room width', { exact: true })).toHaveValue(4.2);
     expect(screen.getByLabelText('Room length', { exact: true })).toHaveValue(3.6);
-    expect(screen.getByLabelText('Room height', { exact: true })).toHaveValue(null);
+    expect(screen.queryByLabelText('Room height', { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText('Back to layout')).not.toBeInTheDocument();
   });
   it('invalid width cannot advance the native form', () => {
@@ -48,22 +48,20 @@ describe('room dimensions and furniture setup', () => {
   });
   it('converts metres to centimetres and includes custom furniture sizes', () => {
     const { next, onGenerate } = setup();
-    change('Room width', '4.75'); change('Room length', '3.25'); change('Room height', '2.7'); next();
+    change('Room width', '4.75'); change('Room length', '3.25'); next();
     change('Bed count', '2'); change('Wardrobe count', '3'); change('Bed width', '90'); change('Bed length', '190'); submit();
     expect(onGenerate).toHaveBeenCalledTimes(1);
     const [room, requests] = onGenerate.mock.calls[0];
-    expect(room).toMatchObject({ width: 475, depth: 325, height: 270 });
+    expect(room).toMatchObject({ width: 475, depth: 325 });
+    expect(room).not.toHaveProperty('height');
     expect(requests.find((request) => request.kind === 'bed')).toMatchObject({ count: 2, width: 90, depth: 190 });
     expect(requests.find((request) => request.kind === 'wardrobe')?.count).toBe(3);
   });
-  it('omits optional height when it was left empty', () => {
-    const { next, onGenerate } = setup(); next(); change('Bed count', '1'); submit();
-    expect(onGenerate.mock.calls[0][0]).not.toHaveProperty('height');
-  });
-  it('allows removing a previously saved optional height', () => {
+  it('does not offer room height and drops height from older saved rooms', () => {
     const saved = emptyProject(); saved.room.height = 270;
     const { next, onGenerate } = setup({ project: saved });
-    change('Room height', ''); next(); change('Bed count', '1'); submit();
+    expect(screen.queryByLabelText('Room height', { exact: true })).not.toBeInTheDocument();
+    next(); change('Bed count', '1'); submit();
     expect(onGenerate.mock.calls[0][0]).not.toHaveProperty('height');
   });
   it('cannot generate an empty furniture list', () => {
