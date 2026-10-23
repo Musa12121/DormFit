@@ -38,9 +38,12 @@ describe('browser AI requests', () => {
     mock(response({ recommendedId: 'balanced' }, 200, 'old-version'));
     await expect(request()).rejects.toThrow(/An old or incompatible backend/);
   });
-  it('rejects a claimed near-window placement that is actually far away', async () => {
+  it('keeps a readable plan when a confirmed near-window condition is missed', async () => {
     const plan = aiPlan(); plan.positions[1].x = 330; plan.positions[1].y = 300; mock(response(plan));
-    await expect(request()).rejects.toThrow(/failed size and placement validation/);
+    const result = await request();
+    expect(result.plan.partial).toBe(true);
+    expect(result.layout.issueCount).toBeGreaterThan(0);
+    expect(result.layout.project.furniture.find(item => item.id === 'plant-1')).toMatchObject({ x: 330, y: 300 });
   });
   it('rejects invented furniture IDs even when the response has the right version', async () => {
     const plan = aiPlan(); plan.positions[0].id = 'invented'; mock(response(plan));

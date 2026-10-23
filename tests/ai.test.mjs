@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { analyze } from '../src/domain/planner.ts';
-import { AI_PROTOCOL, checkAiPlan, requirementDistance } from '../src/domain/ai.ts';
+import { AI_PROTOCOL, checkAiPlan, checkAiPlanBestEffort, requirementDistance } from '../src/domain/ai.ts';
 import { plantProject, plantPlan } from './ai-fixtures.mjs';
 import { getLayoutAdvice } from '../server/gemini.mjs';
 import { repairAiPlan } from '../src/domain/repairAiPlan.ts';
@@ -187,17 +187,41 @@ test('a wrong plant location is repaired locally without a second paid request',
   assert.ok(requirementDistance(checked.layout.project, result.requirements[0]) <= 60);
 });
 
-test('two invalid attempts fail explicitly instead of labelling a local layout as AI', async () => {
+test('two invalid attempts return the last readable AI plan with visible placement warnings', async () => {
   const bad = plantPlan();
   bad.positions[2].x = 330;
   bad.positions[2].y = 300;
   bad.requirements.push({ itemId: 'plant-1', targetId: 'window', relation: 'away' });
   let calls = 0;
-  await assert.rejects(getLayoutAdvice(payload, config, async () => {
+  const result = await getLayoutAdvice(payload, config, async () => {
     calls++;
     return googleResponse(bad);
-  }), { status: 502 });
+  });
   assert.equal(calls, 2);
+  assert.equal(result.partial, true);
+  const checked = checkAiPlan(result, payload.project, payload.prompt);
+  assert.equal(checked.ok, false, 'The strict validator still reports the unsatisfied conditions');
+  const shown = checkAiPlanBestEffort(result, payload.project, payload.prompt);
+  assert.equal(shown.ok, true);
+  assert.ok(shown.layout.issueCount > 0);
+  assert.equal(shown.layout.project.furniture.length, payload.project.furniture.length);
+});
+
+test('keeps a readable best-effort plan if the retry request fails', async () => {
+  const bad = plantPlan();
+  bad.positions[2].x = 330;
+  bad.positions[2].y = 300;
+  bad.requirements.push({ itemId: 'plant-1', targetId: 'window', relation: 'away' });
+  let calls = 0;
+  const result = await getLayoutAdvice(payload, config, async () => {
+    calls++;
+    return calls === 1
+      ? googleResponse(bad)
+      : Response.json({ error: 'temporary service issue' }, { status: 503 });
+  });
+  assert.ok(calls > 1, 'The retry tries the configured model order before failing');
+  assert.equal(result.partial, true);
+  assert.equal(result.positions.find(position => position.id === 'plant-1').x, 330);
 });
 
 test('local repair fixes overlapping furniture while keeping the three example-note requirements', () => {

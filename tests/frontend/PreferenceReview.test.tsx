@@ -5,7 +5,7 @@ import PreferenceReviewModal from '../../src/components/PreferenceReviewModal';
 import type { PreferenceReview } from '../../src/domain/ai';
 import { requestPreferenceReview } from '../../src/domain/requestPreferenceReview';
 import { AI_PROTOCOL } from '../../src/domain/ai';
-import { project } from './fixtures';
+import { furniture, project } from './fixtures';
 
 const initial: PreferenceReview = { requirements: [{ itemId: 'plant-1', targetId: 'window', relation: 'near' }], unmetRequests: ['Cannot verify sunlight.'] };
 function setup(overrides: { busy?: boolean; error?: string; review?: PreferenceReview } = {}) {
@@ -59,6 +59,19 @@ describe('preference review', () => {
 
 describe('preference review request', () => {
   const request = () => requestPreferenceReview(project(), 'Plant near window', new AbortController().signal);
+  it('understands a clear dining-table-to-window note without a model request', async () => {
+    const room = { ...project(), furniture: [furniture({ id: 'dining-table-1', kind: 'dining-table', name: 'Dining table 1' })] };
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
+    await expect(requestPreferenceReview(room, 'dining table should be near the window', new AbortController().signal))
+      .resolves.toEqual({ requirements: [{ itemId: 'dining-table-1', targetId: 'window', relation: 'near' }], unmetRequests: [] });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('explains when a simple note names furniture that was not selected', async () => {
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
+    await expect(requestPreferenceReview(project(), 'dining table should be near the window', new AbortController().signal))
+      .resolves.toEqual({ requirements: [], unmetRequests: ['Dining table is not selected, so this condition cannot be applied.'] });
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('requests interpretation without sending a key or layout-generation request', async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json(initial, { headers: { 'X-DormFit-AI-Version': AI_PROTOCOL } })); vi.stubGlobal('fetch', fetch);
     expect(await request()).toEqual(initial);

@@ -1,12 +1,13 @@
 import type { Project, Furniture, Room, Rotation } from './model.ts';
+import { furnitureLabels, supportedFurniture } from './model.ts';
 import { orientation, rotations, rotationOf } from './rotation.ts';
-import { analyze, footprint } from './planner.ts';
+import { analyze, clampItem, footprint } from './planner.ts';
 import type { LayoutOption } from './planner.ts';
 import { getOpenings, openingLabel, openingSegment } from './openings.ts';
 import { requiresFourSeatDining } from './usability.ts';
 
 // A restarted backend must speak the same coordinate-based protocol as the browser.
-export const AI_PROTOCOL = 'layout-independent-ai-v13';
+export const AI_PROTOCOL = 'layout-independent-ai-v14';
 
 export interface AiOptions {
   enabled: boolean;
@@ -32,6 +33,7 @@ export interface AiPlan {
   explanation: string;
   tips: string[];
   adjusted?: boolean;
+  partial?: boolean;
 }
 
 export type AiStatus =
@@ -78,6 +80,65 @@ export function isPreferenceReview(value: unknown, project: Project): value is P
     && review.unmetRequests.length <= 8 && review.unmetRequests.every((note) => typeof note === 'string' && note.trim().length > 0 && note.length <= 300);
 }
 
+// Understand one clear English placement rule locally, so a simple note does
+// not depend on a model returning IDs in exactly the expected format.
+export function interpretSimplePreference(project: Project, note: string): PreferenceReview | null {
+  const matches = [...note.matchAll(/\b(close to|next to|far from|away from|near)\b/gi)];
+  if (matches.length !== 1) return null;
+
+  const match = matches[0];
+  const start = match.index ?? 0;
+  let subject = note.slice(0, start).trim();
+  let target = note.slice(start + match[0].length).trim();
+  const command = /^(?:please\s+)?(?:place|put|keep|position|move)\s+/i.test(subject);
+  if (command) subject = subject.replace(/^(?:please\s+)?(?:place|put|keep|position|move)\s+/i, '');
+
+  const predicate = /\s+(?:should|must)\s+be$|\s+(?:needs|has)\s+to\s+be$|\s+(?:is|are|sit|sits|go|goes)$/i;
+  const hasPredicate = predicate.test(subject);
+  if (hasPredicate) subject = subject.replace(predicate, '');
+  if (!command && !hasPredicate) return null;
+
+  const normalize = (value: string) => value.toLowerCase().trim()
+    .replace(/[.!?,;:]+$/g, '').replace(/\s+/g, ' ');
+  subject = normalize(subject.replace(/^(?:the|a|an)\s+/i, ''));
+  target = normalize(target.replace(/^(?:the|a|an)\s+/i, ''));
+  if (!subject || !target) return null;
+
+  const numberedSubject = /^(.*?)\s+(\d+)$/.exec(subject);
+  const baseSubject = numberedSubject?.[1] ?? subject;
+  const entry = supportedFurniture.find((item) => [
+    item.name,
+    item.kind.replaceAll('-', ' '),
+    furnitureLabels[item.kind],
+  ].some((label) => normalize(label) === baseSubject));
+  if (!entry) return null;
+
+  const items = project.furniture.filter((item) => item.kind === entry.kind
+    && (!numberedSubject || normalize(item.name) === subject));
+  if (!items.length) {
+    return { requirements: [], unmetRequests: [`${entry.name} is not selected, so this condition cannot be applied.`] };
+  }
+
+  const targetOption = targetOptions(project).find((option) => {
+    const label = option.label.replace(/\s*\([^)]*\)\s*$/, '');
+    return normalize(option.id) === target || normalize(label) === target;
+  });
+  if (!targetOption) {
+    const opening = /^(window|door)(?:\s+\d+)?$/.exec(target);
+    if (opening && !getOpenings(project.room).some((item) => item.kind === opening[1])) {
+      return { requirements: [], unmetRequests: [`There is no ${opening[1]} in the room, so this condition cannot be applied.`] };
+    }
+    return null;
+  }
+
+  const relation = /^(?:near|close to|next to)$/i.test(match[0]) ? 'near' : 'away';
+  const review: PreferenceReview = {
+    requirements: items.map((item) => ({ itemId: item.id, targetId: targetOption.id, relation })),
+    unmetRequests: [],
+  };
+  return isPreferenceReview(review, project) ? review : null;
+}
+
 // Distance is between footprint edges, not their centres. Window/door are wall segments.
 function targetRect(targetId: string, room: Room, furniture: Furniture[]) {
   const { width, depth } = room;
@@ -122,7 +183,7 @@ export function requirementSatisfied(project: Project, rule: PlacementRequiremen
 }
 
 // Only explicitly reported chairs may be left out. Every other original ID and size stays intact.
-export function readAiPlan(value: unknown, source: Project, prompt = '', review?: PreferenceReview):
+export function readAiPlan(value: unknown, source: Project, prompt = '', review?: PreferenceReview, allowPartialReview = false):
   { ok: true; plan: AiPlan } | { ok: false; problems: string[] } {
   const fail = (message: string): { ok: false; problems: string[] } => ({ ok: false, problems: [message] });
   const text = (value: unknown, max: number) =>
@@ -163,8 +224,15 @@ export function readAiPlan(value: unknown, source: Project, prompt = '', review?
   if (review) {
     if (!isPreferenceReview(review, source)) return fail('Invalid reviewed requirements.');
     const signature = (rules: PlacementRequirement[]) => rules.map((rule) => `${rule.itemId}|${rule.targetId}|${rule.relation}`).sort().join('\n');
-    if (signature(review.requirements) !== signature(plan.requirements)) return fail('Preserve exactly the user-confirmed requirements.');
-    if (!review.unmetRequests.every((note) => plan.unmetRequests.includes(note))) return fail('Preserve the reviewed unsupported requests.');
+    if (allowPartialReview) {
+      const confirmed = new Set(review.requirements.map(rule => `${rule.itemId}|${rule.targetId}|${rule.relation}`));
+      if (plan.requirements.some(rule => !confirmed.has(`${rule.itemId}|${rule.targetId}|${rule.relation}`))) {
+        return fail('Do not add or change user-confirmed requirements.');
+      }
+    } else if (signature(review.requirements) !== signature(plan.requirements)) {
+      return fail('Preserve exactly the user-confirmed requirements.');
+    }
+    if (!allowPartialReview && !review.unmetRequests.every((note) => plan.unmetRequests.includes(note))) return fail('Preserve the reviewed unsupported requests.');
   }
 
   return { ok: true, plan: {
@@ -172,25 +240,43 @@ export function readAiPlan(value: unknown, source: Project, prompt = '', review?
     positions: plan.positions.map(position => ({ id: position.id, x: position.x, y: position.y,
       rotated: position.rotation === undefined ? position.rotated : position.rotation % 180 === 90,
       ...(position.rotation === undefined ? {} : { rotation: position.rotation }) })),
-    requirements: plan.requirements.map(({ itemId, targetId, relation }) => ({ itemId, targetId, relation })),
-    unmetRequests: [...plan.unmetRequests],
+    requirements: (allowPartialReview && review ? review.requirements : plan.requirements)
+      .map(({ itemId, targetId, relation }) => ({ itemId, targetId, relation })),
+    unmetRequests: [...new Set([...(review?.unmetRequests ?? []), ...plan.unmetRequests])],
     explanation: plan.explanation,
     tips: [...plan.tips],
     ...(plan.adjusted === true ? { adjusted: true } : {}),
+    ...(plan.partial === true ? { partial: true } : {}),
   } };
+}
+
+function projectForAiPlan(plan: AiPlan, source: Project) {
+  const omitted = new Set(plan.omittedChairIds ?? []);
+  const project = structuredClone(source);
+  project.omittedChairs = [...(source.omittedChairs ?? []), ...source.furniture.filter(item => omitted.has(item.id))];
+  project.furniture = project.furniture.filter(item => !omitted.has(item.id)).map((item) => {
+    const position = plan.positions.find((position) => position.id === item.id)!;
+    return { ...item, x: position.x, y: position.y, ...orientation(rotationOf(position)) };
+  });
+  return project;
+}
+
+function aiLayout(plan: AiPlan, project: Project, issueCount: number): LayoutOption {
+  const partial = plan.partial === true || issueCount > 0 || plan.unmetRequests.length > 0 || plan.omittedChairIds?.length;
+  return {
+    id: 'ai',
+    name: partial ? 'AI layout · partially matched' : 'AI layout for your preferences',
+    description: plan.adjusted ? 'AI layout adjusted to fit the room' : 'Gemini placed the furniture',
+    project,
+    issueCount,
+  };
 }
 
 export function checkAiPlan(value: unknown, source: Project, prompt = '', review?: PreferenceReview): PlanCheck {
   const parsed = readAiPlan(value, source, prompt, review);
   if (!parsed.ok) return parsed;
   const plan = parsed.plan;
-  const project = structuredClone(source);
-  const omitted = new Set(plan.omittedChairIds ?? []);
-  project.omittedChairs = [...(source.omittedChairs ?? []), ...source.furniture.filter(item => omitted.has(item.id))];
-  project.furniture = project.furniture.filter(item => !omitted.has(item.id)).map((item) => {
-    const position = plan.positions.find((position) => position.id === item.id)!;
-    return { ...item, x: position.x, y: position.y, ...orientation(rotationOf(position)) };
-  });
+  const project = projectForAiPlan(plan, source);
   const problems = analyze(project).issues.map((issue) => `${issue.type}: ${issue.ids.join(', ')}`);
   if (requiresFourSeatDining(source.furniture) && project.furniture.filter(item => item.kind === 'chair').length !== 4) {
     problems.push('facing: Keep all four dining chairs, with two on each opposite long side.');
@@ -205,11 +291,42 @@ export function checkAiPlan(value: unknown, source: Project, prompt = '', review
 
   return {
     ok: true,
-    plan,
-    layout: {
-      id: 'ai', name: plan.unmetRequests.length || plan.omittedChairIds?.length ? 'AI layout · partially matched' : 'AI layout for your preferences',
-      description: plan.adjusted ? 'AI layout adjusted to fit the room' : 'Gemini placed the furniture',
-      project, issueCount: 0,
-    },
+    plan: plan.unmetRequests.length || plan.omittedChairIds?.length ? { ...plan, partial: true } : plan,
+    layout: aiLayout(plan, project, 0),
   };
+}
+
+// Keep a usable, editable AI suggestion when its positions cannot pass every
+// planning check. The UI shows the failed checks and marks missed preferences.
+export function checkAiPlanBestEffort(value: unknown, source: Project, prompt = '', review?: PreferenceReview): PlanCheck {
+  const checked = checkAiPlan(value, source, prompt, review);
+  if (checked.ok) return checked;
+
+  const parsed = readAiPlan(value, source, prompt, review, true);
+  if (!parsed.ok) return parsed;
+
+  let adjusted = parsed.plan.adjusted === true;
+  const project = projectForAiPlan(parsed.plan, source);
+  project.furniture = project.furniture.map(item => {
+    const bounded = clampItem(item, project.room);
+    if (bounded.x !== item.x || bounded.y !== item.y) adjusted = true;
+    return bounded;
+  });
+  const positions = parsed.plan.positions.map(position => {
+    const item = project.furniture.find(item => item.id === position.id)!;
+    return { ...position, x: item.x, y: item.y };
+  });
+  const plan: AiPlan = {
+    ...parsed.plan,
+    positions,
+    ...(adjusted ? { adjusted: true } : {}),
+    partial: true,
+  };
+  const missedPreferences = plan.requirements.filter(requirement => !requirementSatisfied(project, requirement)).length;
+  const issueCount = analyze(project).issues.length + missedPreferences;
+  const name = issueCount || plan.unmetRequests.length || plan.omittedChairIds?.length
+    ? 'AI layout · partially matched'
+    : 'AI layout for your preferences';
+  const layout = { ...aiLayout(plan, project, issueCount), name };
+  return { ok: true, plan, layout };
 }

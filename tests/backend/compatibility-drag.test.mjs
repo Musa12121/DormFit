@@ -59,14 +59,17 @@ test('compatibility failure is bounded and never exposes the raw Google message'
   assert.equal(calls, 2);
 });
 
-test('JSON compatibility cannot bypass furniture or confirmed-condition validation', async () => {
+test('JSON compatibility restores dropped confirmed conditions in a best-effort plan', async () => {
   let calls = 0;
-  await assert.rejects(getLayoutAdvice({ ...payload(), review: { requirements: plantPlan().requirements, unmetRequests: [] } }, fakeConfig, async () => {
+  const review = { requirements: plantPlan().requirements, unmetRequests: [] };
+  const result = await getLayoutAdvice({ ...payload(), review }, fakeConfig, async () => {
     calls++;
     if (calls % 2 === 1) return Response.json({ error: { message: 'responseFormat is unsupported' } }, { status: 400 });
     return response({ ...plantPlan(), requirements: [] });
-  }), (error) => error.code === 'AI_PLAN_INVALID');
+  });
   assert.equal(calls, 4);
+  assert.equal(result.partial, true);
+  assert.deepEqual(result.requirements, review.requirements);
 });
 
 test('interpretation uses the same compatibility path', async () => {

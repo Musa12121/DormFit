@@ -596,7 +596,7 @@ export default function App() {
                 <div>
                   <strong>{t(format(state.total))}{t(" m² of space")}</strong>
                   <span>
-                    {project.furniture.length}{t(" furniture items")}{t(project.room.height ? ' · h ' + format(project.room.height / 100) + ' m' : '')}
+                    {project.furniture.length}{t(" furniture items")}
                   </span>
                 </div>
               </div>
@@ -1402,7 +1402,7 @@ export default function App() {
           </div>
           <div className="help-note">
             <Lightbulb size={19} />
-            <p>{t("Free space is based on furniture footprints; rugs do not take up extra floor space. Layouts use floor measurements. Height is saved for reference. Check walking space, wardrobe doors and actual dimensions in your room.")}</p>
+            <p>{t("Free space is based on furniture footprints; rugs do not take up extra floor space. Layouts use floor measurements. Check walking space, wardrobe doors and actual dimensions in your room.")}</p>
           </div>
           <button className="button primary" onClick={() => setDialog(null)}>{t("Start planning")}<ArrowRight size={15} />
           </button>

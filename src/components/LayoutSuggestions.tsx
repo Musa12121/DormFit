@@ -2,7 +2,7 @@ import { getLanguage, t } from '../i18n';
 import { ArrowRight, Check, RefreshCw, Settings2, Sparkles } from 'lucide-react';
 import type { LayoutOption } from '../domain/planner';
 import type { AiOptions, AiStatus } from '../domain/ai';
-import { requirementLabel } from '../domain/ai';
+import { requirementLabel, requirementSatisfied } from '../domain/ai';
 import AiControls from './AiControls';
 import PlanCanvas from './PlanCanvas';
 import ChairOmissions from './ChairOmissions';
@@ -89,7 +89,7 @@ export default function LayoutSuggestions({
               {t(aiStatus.kind === 'loading'
                 ? (aiOptions.prompt.trim() ? 'Gemini is creating a layout using your notes…' : 'Gemini is creating a layout for your room…')
                 : aiStatus.kind === 'success'
-                  ? 'Gemini placed your furniture'
+                  ? aiStatus.plan.partial ? 'Gemini made a best-effort layout' : 'Gemini placed your furniture'
                   : 'AI layout failed — showing regular layouts')}
             </strong>
             {aiStatus.kind === 'loading' && (
@@ -103,14 +103,20 @@ export default function LayoutSuggestions({
                 {activeId !== 'ai' && <p className="ai-selection-note">{t("A regular layout is currently selected. Select the “Gemini layout” card to see the layout created using your notes.")}</p>}
                 {aiStatus.language && aiStatus.language !== getLanguage() && <p className="ai-selection-note">{t('Generate layouts again to get AI explanations in the selected language.')}</p>}
                 <p lang={aiStatus.language}>{t(aiStatus.plan.explanation)}</p>
+                {aiStatus.plan.partial && <p className="ai-partial-warning" role="note">{t("Some checks could not be met, so this is a best-effort layout. Review the warnings before using it.")}</p>}
                 {aiStatus.plan.adjusted && <p>{t("The app adjusted the positions to fit the room. The placement conditions below were preserved and checked again.")}</p>}
                 {aiStatus.plan.requirements.length > 0 && (
                   <>
                     <p><strong>{t("Conditions understood by AI and checked by the app:")}</strong></p>
                     <ul className="ai-requirements">
-                      {aiStatus.plan.requirements.map((rule, index) => (
-                        <li key={index}>{t(requirementLabel(aiLayout.project, rule))} ✓</li>
-                      ))}
+                      {aiStatus.plan.requirements.map((rule, index) => {
+                        const met = requirementSatisfied(aiLayout.project, rule);
+                        return <li key={index}>
+                          {t(requirementLabel(aiLayout.project, rule))} {met
+                            ? '✓'
+                            : <span className="condition-unmet">— {t("Not met; layout shown anyway")}</span>}
+                        </li>;
+                      })}
                     </ul>
                   </>
                 )}
@@ -131,7 +137,7 @@ export default function LayoutSuggestions({
         </div>
       )}
       {layouts.length > 0 && !hasValidLayout && (
-        <p className="layout-warning" role="alert">{t("No layout could fit all selected furniture without overlaps and with enough space between pieces. Change the quantities or sizes, or adjust the layout yourself.")}</p>
+        <p className="layout-warning" role="alert">{t("Some layout options have warnings. Check them and adjust a plan before using it.")}</p>
       )}
       {layouts.length > 0 ? (
         <>

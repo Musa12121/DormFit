@@ -1,5 +1,5 @@
 import { isProject } from '../src/domain/storage.ts';
-import { checkAiPlan, isPreferenceReview, readAiPlan, targetOptions } from '../src/domain/ai.ts';
+import { checkAiPlan, checkAiPlanBestEffort, isPreferenceReview, readAiPlan, targetOptions } from '../src/domain/ai.ts';
 import { analyze, footprint } from '../src/domain/planner.ts';
 import { orientation, rotationOf } from '../src/domain/rotation.ts';
 import { doorZones, entranceZones, furnitureEntranceZones, getOpenings, openingSegment } from '../src/domain/openings.ts';
@@ -57,8 +57,20 @@ export async function getLayoutAdvice(payload, config, fetchImpl = fetch, signal
 
   // Give the model one chance to fix specific geometry or placement errors.
   let problems = [];
+  let lastValue;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const value = await callGemini(config, apiKey, contents, schema, fetchImpl, signal, responseInstructions(planInstructions, payload.language));
+    let value;
+    try {
+      value = await callGemini(config, apiKey, contents, schema, fetchImpl, signal, responseInstructions(planInstructions, payload.language));
+    } catch (error) {
+      if (signal.aborted) throw error;
+      const bestEffort = lastValue === undefined
+        ? null
+        : checkAiPlanBestEffort(lastValue, project, payload.prompt, payload.review);
+      if (bestEffort?.ok) return bestEffort.plan;
+      throw error;
+    }
+    lastValue = value;
     const checked = checkAiPlan(value, project, payload.prompt, payload.review);
     if (checked.ok && !checked.plan.omittedChairIds?.length && !project.furniture.some(item => item.kind === 'rug')) return checked.plan;
     problems = checked.ok ? [] : checked.problems;
@@ -74,6 +86,8 @@ export async function getLayoutAdvice(payload, config, fetchImpl = fetch, signal
       }) }] },
     );
   }
+  const bestEffort = checkAiPlanBestEffort(lastValue, project, payload.prompt, payload.review);
+  if (bestEffort.ok) return bestEffort.plan;
   throw planValidationError(problems);
 }
 
@@ -111,7 +125,7 @@ export async function getPreferenceReview(payload, config, fetchImpl = fetch, si
   };
   const value = await callGemini(config, apiKey, [{ role: 'user', parts: [{ text: JSON.stringify(input) }] }], preferenceSchema(project), fetchImpl, signal, responseInstructions(preferenceInstructions, payload.language));
   if (!isPreferenceReview(value, project) || (!value.requirements.length && !value.unmetRequests.length)) {
-    throw new ApiError(502, 'AI could not interpret the note. Try a simpler note or add conditions manually.', 'GEMINI_RESPONSE_INVALID');
+    throw new ApiError(502, 'Gemini returned conditions that DormFit could not verify. Try again or add them manually.', 'GEMINI_RESPONSE_INVALID');
   }
   return { requirements: value.requirements, unmetRequests: value.unmetRequests };
 }

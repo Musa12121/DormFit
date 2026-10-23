@@ -1,5 +1,5 @@
 import type { Project } from './model';
-import { AI_PROTOCOL, checkAiPlan } from './ai';
+import { AI_PROTOCOL, checkAiPlanBestEffort } from './ai';
 import type { PreferenceReview } from './ai';
 import { getLanguage } from '../i18n';
 import type { Language } from '../i18n';
@@ -47,7 +47,7 @@ export async function requestAiPlan(
   if (response.headers.get('X-DormFit-AI-Version') !== AI_PROTOCOL) {
     throw new Error('An old or incompatible backend is running. Stop it with Ctrl+C, then restart it with npm run dev.');
   }
-  const checked = checkAiPlan(body, project, prompt, review);
+  const checked = checkAiPlanBestEffort(body, project, prompt, review);
   if (!checked.ok) {
     throw new Error('The AI layout failed size and placement validation.');
   }

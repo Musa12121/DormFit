@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import LayoutSuggestions from '../../src/components/LayoutSuggestions';
-import { checkAiPlan } from '../../src/domain/ai';
+import { checkAiPlanBestEffort } from '../../src/domain/ai';
 import { generateLayouts } from '../../src/domain/planner';
 import { project, aiPlan } from './fixtures';
 
@@ -16,7 +16,7 @@ function setup(overrides: Partial<ComponentProps<typeof LayoutSuggestions>> = {}
   return { ...render(<LayoutSuggestions {...props} />), onSelect, onGenerate, onEdit, props };
 }
 function success(plan = aiPlan(), activeId = 'ai') {
-  const checked = checkAiPlan(plan, project(), 'Place the plant near the window.');
+  const checked = checkAiPlanBestEffort(plan, project(), 'Place the plant near the window.');
   if (!checked.ok) throw new Error('Invalid test fixture');
   return setup({ layouts: [checked.layout, ...generateLayouts(project())], activeId,
     aiStatus: { kind: 'success', plan }, aiOptions: { enabled: true, prompt: 'Place the plant near the window.' } });
@@ -52,7 +52,7 @@ describe('layout suggestions and AI feedback', () => {
   });
   it('warns when no calculated layout is conflict-free', () => {
     setup({ layouts: generateLayouts(project()).map((layout) => ({ ...layout, issueCount: 2 })) });
-    expect(screen.getByRole('alert')).toHaveTextContent('could fit all selected furniture without overlaps');
+    expect(screen.getByRole('alert')).toHaveTextContent('Some layout options have warnings');
   });
   it('explains that loading local layouts do not apply the note', () => {
     setup({ aiStatus: { kind: 'loading' }, busy: true });
@@ -74,6 +74,30 @@ describe('layout suggestions and AI feedback', () => {
   it('shows unfulfilled requests and labels the plan as partial', () => {
     const plan = aiPlan(); plan.unmetRequests = ['Could not verify the walkway width.']; success(plan);
     expect(screen.getByRole('note')).toHaveTextContent('Could not verify the walkway width.');
+    expect(screen.getByText('AI layout · partially matched')).toBeVisible();
+  });
+  it('shows a best-effort layout and marks a missed preference', () => {
+    const plan = aiPlan();
+    plan.positions.find(position => position.id === 'plant-1')!.x = 330;
+    plan.positions.find(position => position.id === 'plant-1')!.y = 300;
+    const review = {
+      requirements: [
+        { itemId: 'plant-1', targetId: 'window', relation: 'near' as const },
+        { itemId: 'bed-1', targetId: 'left-wall', relation: 'near' as const },
+      ],
+      unmetRequests: ['Keep the center clear.'],
+    };
+    plan.requirements = [review.requirements[1]];
+    plan.unmetRequests = [];
+    const checked = checkAiPlanBestEffort(plan, project(), 'Place the plant near the window.', review);
+    if (!checked.ok) throw new Error('Expected a best-effort layout');
+    expect(checked.plan.requirements).toEqual(review.requirements);
+    expect(checked.plan.unmetRequests).toContain('Keep the center clear.');
+    setup({ layouts: [checked.layout, ...generateLayouts(project())], activeId: 'ai',
+      aiStatus: { kind: 'success', plan: checked.plan },
+      aiOptions: { enabled: true, prompt: 'Place the plant near the window.' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Gemini made a best-effort layout');
+    expect(screen.getByRole('status')).toHaveTextContent('Not met; layout shown anyway');
     expect(screen.getByText('AI layout · partially matched')).toBeVisible();
   });
   it('discloses coordinate repair rather than claiming untouched model output', () => {
