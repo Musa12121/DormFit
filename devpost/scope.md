@@ -3,36 +3,46 @@ doc: scope
 status: draft
 ---
 
-# DormFit — quantity-based room planning
+# DormFit: Room layout ideas
 
-## The Unique Kernel
+## What the app does
 
-Enter room dimensions and furniture quantities; get measured layout suggestions containing those items.
+DormFit helps people plan where furniture can go in a rectangular room. A user enters the room size, chooses the furniture and how many of each item they need, then compares layout ideas.
 
-## Who It's For
+## Who it is for
 
-Someone arranging a rectangular room, with any supported number of beds, wardrobes, desks and other available furniture. The flow does not assume two roommates.
+Anyone who wants to arrange or rearrange furniture in a room.
 
-## The Core Loop
+## How a user works with it
 
-Width/length and optional height → furniture quantities and sizes → compare suggestions → select and adjust → save/export.
+1. Enter the room's width and length.
+2. Add doors and windows, then choose furniture and amounts.
+3. Compare three layouts made by DormFit's placement rules.
+4. Choose a layout and move, resize or rotate furniture.
+5. Save the plan in the browser or export it as a file.
 
-## Inspiration & Identity
+Users can also ask Gemini for a separate layout based on written preferences. They review and confirm the conditions DormFit understood before generating it.
 
-Use an architectural-studio style with light and dark themes. Support English, Russian and Turkish. Keep the code simple and understandable.
+## Main goals
 
-## What "Working" Looks Like
+- Make it clear what each step asks the user to do.
+- Keep the regular layouts available without an AI key.
+- Show furniture in a clear 2D plan and an illustrative 3D view.
+- Let users change the furniture and room openings.
+- Keep the code understandable.
 
-Suggestions use the exact quantities and sizes entered. Inputs can be revised. Unplaced furniture remains present with visible issues.
+## What is included
 
-## The POC Boundary
+The app supports one rectangular room, room dimensions, doors, windows, furniture amounts and sizes, three rule-based layouts, editing, local saving and file export. Optional Gemini layouts use a Node.js server on the user's computer.
 
-Local React/TypeScript/Vite frontend, one rectangular room, optional informational height, quantity form, measured placement rules, editable SVG, isometric preview and local/file persistence.
+## What is not included
 
-## Explicitly Deferred
+There are no user accounts, online saving or public app hosting. The app does not collect room or furniture heights, so it cannot check ceiling clearance or building rules.
 
-Accounts, cloud persistence and public hosting are deferred. Optional Gemini integration now generates furniture coordinates through a local backend and validates them against room geometry and confirmed preferences. No real API key is included. Vertical fit is not checked because furniture height is not collected.
+## Future plans
+
+Let users enter room and furniture heights, add ceiling fixtures such as chandeliers, and compare furniture heights with room height to warn when an item may not fit.
 
 ## Revision
 
-The latest user request replaces the original two-roommate-first flow with dimensions → quantities → suggestions. Previous saved files remain readable.
+The project began with a different room-planning flow. Feedback changed it to ask for room size and furniture amounts before showing layout ideas. Other changes include movable doors and windows, four furniture directions, clearer furniture drawings, checks for door space and an optional Gemini layout with reviewable conditions. Older saved files are still supported.
